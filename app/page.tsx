@@ -45,7 +45,7 @@ const recentInvoices = [
   { id: "REC-004", client: "Ana Martínez", amount: "RD$675", time: "2:20 PM" },
 ]
 
-export default function Dashboard() {
+export default function Home() {
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar />
@@ -162,6 +162,17 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* SaleSystem - La Rubia */}
+          <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-slate-900 mb-4">SaleSystem - La Rubia</h1>
+              <p className="text-slate-600 mb-8">Sistema de facturación moderno y eficiente</p>
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg mx-auto flex items-center justify-center">
+                <span className="text-white font-bold text-2xl">LR</span>
+              </div>
             </div>
           </div>
         </main>
