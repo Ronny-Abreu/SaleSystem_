@@ -49,12 +49,19 @@ class Producto {
         return false;
     }
 
-    // Leer todos los productos
-    public function read($activos_solo = false) {
+    // Filtro para productos activos
+    public function read($filtro_activos = null) {
         $query = "SELECT * FROM " . $this->table_name;
-        if ($activos_solo) {
+        
+        // Aplicar filtro según el parámetro (Filtrar true o false para ver productos activo)
+        if ($filtro_activos === true) {
             $query .= " WHERE activo = 1";
+        } elseif ($filtro_activos === false) {
+            $query .= " WHERE activo = 0";
         }
+        
+        // Si $filtro_activos es null, no se aplica filtro (se filtran todos los productos)
+        
         $query .= " ORDER BY nombre ASC";
         
         $stmt = $this->conn->prepare($query);

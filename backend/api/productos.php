@@ -34,9 +34,18 @@ try {
                     ApiResponse::notFound("Producto no encontrado");
                 }
             } else {
-                // Obtener todos los productos
-                $activos_solo = isset($_GET['activos']) && $_GET['activos'] === 'true';
-                $stmt = $producto->read($activos_solo);
+                // Obtener productos con filtros
+                $filtro_activos = null;
+                
+                if(isset($_GET['activos'])) {
+                    if($_GET['activos'] === 'true') {
+                        $filtro_activos = true;
+                    } elseif($_GET['activos'] === 'false') {
+                        $filtro_activos = false;
+                    }
+                }
+                
+                $stmt = $producto->read($filtro_activos);
                 $productos = array();
                 
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -52,7 +61,14 @@ try {
                     );
                 }
                 
-                ApiResponse::success($productos, "Productos obtenidos exitosamente");
+                $mensaje = "Productos obtenidos exitosamente";
+                if($filtro_activos === true) {
+                    $mensaje = "Productos activos obtenidos exitosamente";
+                } elseif($filtro_activos === false) {
+                    $mensaje = "Productos inactivos obtenidos exitosamente";
+                }
+                
+                ApiResponse::success($productos, $mensaje);
             }
             break;
             
