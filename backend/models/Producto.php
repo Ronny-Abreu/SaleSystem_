@@ -12,6 +12,7 @@ class Producto {
     public $descripcion;
     public $stock;
     public $activo;
+    public $categoria_id;
     public $created_at;
     public $updated_at;
 
@@ -19,11 +20,11 @@ class Producto {
         $this->conn = $db;
     }
 
-    // Crear producto
+    // Crear producto nuevo
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " 
                   SET nombre=:nombre, precio=:precio, descripcion=:descripcion, 
-                      stock=:stock, activo=:activo";
+                      stock=:stock, activo=:activo, categoria_id=:categoria_id";
 
         $stmt = $this->conn->prepare($query);
 
@@ -33,6 +34,7 @@ class Producto {
         $this->descripcion = htmlspecialchars(strip_tags($this->descripcion));
         $this->stock = htmlspecialchars(strip_tags($this->stock));
         $this->activo = $this->activo ? 1 : 0;
+        $this->categoria_id = $this->categoria_id ? htmlspecialchars(strip_tags($this->categoria_id)) : null;
 
         // Bind valores
         $stmt->bindParam(":nombre", $this->nombre);
@@ -40,6 +42,7 @@ class Producto {
         $stmt->bindParam(":descripcion", $this->descripcion);
         $stmt->bindParam(":stock", $this->stock);
         $stmt->bindParam(":activo", $this->activo);
+        $stmt->bindParam(":categoria_id", $this->categoria_id);
 
         if($stmt->execute()) {
             $this->id = $this->conn->lastInsertId();
@@ -49,29 +52,62 @@ class Producto {
         return false;
     }
 
-    // Filtro para productos activos
+    // Leer productos con categorías
     public function read($filtro_activos = null) {
-        $query = "SELECT * FROM " . $this->table_name;
+        $query = "SELECT 
+                    p.id,
+                    p.nombre,
+                    p.precio,
+                    p.descripcion,
+                    p.stock,
+                    p.activo,
+                    p.categoria_id,
+                    p.created_at,
+                    p.updated_at,
+                    c.nombre as categoria_nombre,
+                    c.color as categoria_color,
+                    c.descripcion as categoria_descripcion
+                  FROM " . $this->table_name . " p 
+                  LEFT JOIN categorias_productos c ON p.categoria_id = c.id";
         
-        // Aplicar filtro según el parámetro (Filtrar true o false para ver productos activo)
+        $conditions = array();
+        $params = array();
+        
         if ($filtro_activos === true) {
-            $query .= " WHERE activo = 1";
+            $conditions[] = "p.activo = :activo_true";
+            $params[':activo_true'] = 1;
         } elseif ($filtro_activos === false) {
-            $query .= " WHERE activo = 0";
+            $conditions[] = "p.activo = :activo_false";
+            $params[':activo_false'] = 0;
         }
         
-        // Si $filtro_activos es null, no se aplica filtro (se filtran todos los productos)
+        if (!empty($conditions)) {
+            $query .= " WHERE " . implode(" AND ", $conditions);
+        }
         
-        $query .= " ORDER BY nombre ASC";
+        $query .= " ORDER BY p.nombre ASC";
         
         $stmt = $this->conn->prepare($query);
+        
+        // Bind parámetros
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        
         $stmt->execute();
         return $stmt;
     }
 
     // Buscar producto por ID
     public function findById($id) {
-        $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id LIMIT 1";
+        $query = "SELECT 
+                    p.*,
+                    c.nombre as categoria_nombre, 
+                    c.color as categoria_color,
+                    c.descripcion as categoria_descripcion
+                  FROM " . $this->table_name . " p 
+                  LEFT JOIN categorias_productos c ON p.categoria_id = c.id 
+                  WHERE p.id = :id LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":id", $id);
         $stmt->execute();
@@ -85,6 +121,7 @@ class Producto {
             $this->descripcion = $row['descripcion'];
             $this->stock = $row['stock'];
             $this->activo = $row['activo'];
+            $this->categoria_id = $row['categoria_id'];
             $this->created_at = $row['created_at'];
             $this->updated_at = $row['updated_at'];
             return true;
@@ -97,7 +134,7 @@ class Producto {
     public function update() {
         $query = "UPDATE " . $this->table_name . " 
                   SET nombre=:nombre, precio=:precio, descripcion=:descripcion, 
-                      stock=:stock, activo=:activo, updated_at=CURRENT_TIMESTAMP
+                      stock=:stock, activo=:activo, categoria_id=:categoria_id, updated_at=CURRENT_TIMESTAMP
                   WHERE id=:id";
 
         $stmt = $this->conn->prepare($query);
@@ -108,6 +145,7 @@ class Producto {
         $this->descripcion = htmlspecialchars(strip_tags($this->descripcion));
         $this->stock = htmlspecialchars(strip_tags($this->stock));
         $this->activo = $this->activo ? 1 : 0;
+        $this->categoria_id = $this->categoria_id ? htmlspecialchars(strip_tags($this->categoria_id)) : null;
         $this->id = htmlspecialchars(strip_tags($this->id));
 
         // Bind valores
@@ -116,6 +154,7 @@ class Producto {
         $stmt->bindParam(":descripcion", $this->descripcion);
         $stmt->bindParam(":stock", $this->stock);
         $stmt->bindParam(":activo", $this->activo);
+        $stmt->bindParam(":categoria_id", $this->categoria_id);
         $stmt->bindParam(":id", $this->id);
 
         return $stmt->execute();

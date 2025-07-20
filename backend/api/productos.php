@@ -26,6 +26,7 @@ try {
                         "descripcion" => $producto->descripcion,
                         "stock" => intval($producto->stock),
                         "activo" => boolval($producto->activo),
+                        "categoria_id" => $producto->categoria_id ? intval($producto->categoria_id) : null,
                         "created_at" => $producto->created_at,
                         "updated_at" => $producto->updated_at
                     );
@@ -47,15 +48,19 @@ try {
                 
                 $stmt = $producto->read($filtro_activos);
                 $productos = array();
-                
+
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                     $productos[] = array(
-                        "id" => $row['id'],
+                        "id" => intval($row['id']),
                         "nombre" => $row['nombre'],
                         "precio" => floatval($row['precio']),
                         "descripcion" => $row['descripcion'],
                         "stock" => intval($row['stock']),
                         "activo" => boolval($row['activo']),
+                        "categoria_id" => $row['categoria_id'] ? intval($row['categoria_id']) : null,
+                        "categoria_nombre" => $row['categoria_nombre'],
+                        "categoria_color" => $row['categoria_color'],
+                        "categoria_descripcion" => $row['categoria_descripcion'],
                         "created_at" => $row['created_at'],
                         "updated_at" => $row['updated_at']
                     );
@@ -85,6 +90,7 @@ try {
             $producto->descripcion = $data->descripcion ?? '';
             $producto->stock = $data->stock ?? 0;
             $producto->activo = $data->activo ?? true;
+            $producto->categoria_id = $data->categoria_id ?? null;
             
             // Validar datos
             $producto->validate();
@@ -96,7 +102,8 @@ try {
                     "precio" => floatval($producto->precio),
                     "descripcion" => $producto->descripcion,
                     "stock" => intval($producto->stock),
-                    "activo" => boolval($producto->activo)
+                    "activo" => boolval($producto->activo),
+                    "categoria_id" => $producto->categoria_id ? intval($producto->categoria_id) : null
                 );
                 ApiResponse::success($producto_data, "Producto creado exitosamente", 201);
             } else {
@@ -129,6 +136,7 @@ try {
             $producto->descripcion = $data->descripcion ?? $producto->descripcion;
             $producto->stock = $data->stock ?? $producto->stock;
             $producto->activo = isset($data->activo) ? $data->activo : $producto->activo;
+            $producto->categoria_id = isset($data->categoria_id) ? $data->categoria_id : $producto->categoria_id;
             
             // Validar datos
             $producto->validate();
@@ -140,7 +148,8 @@ try {
                     "precio" => floatval($producto->precio),
                     "descripcion" => $producto->descripcion,
                     "stock" => intval($producto->stock),
-                    "activo" => boolval($producto->activo)
+                    "activo" => boolval($producto->activo),
+                    "categoria_id" => $producto->categoria_id ? intval($producto->categoria_id) : null
                 );
                 ApiResponse::success($producto_data, "Producto actualizado exitosamente");
             } else {
