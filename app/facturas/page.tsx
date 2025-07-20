@@ -91,54 +91,93 @@ export default function FacturasPage() {
                   <p>Error: {error}</p>
                 </div>
               ) : facturas.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="text-left py-3 px-4 font-semibold text-slate-700">Número</th>
-                        <th className="text-left py-3 px-4 font-semibold text-slate-700">Cliente</th>
-                        <th className="text-left py-3 px-4 font-semibold text-slate-700">Fecha</th>
-                        <th className="text-right py-3 px-4 font-semibold text-slate-700">Total</th>
-                        <th className="text-center py-3 px-4 font-semibold text-slate-700">Estado</th>
-                        <th className="text-center py-3 px-4 font-semibold text-slate-700">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {facturas.map((factura) => (
-                        <tr key={factura.id} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="py-3 px-4 font-medium text-slate-900">{factura.numero_factura}</td>
-                          <td className="py-3 px-4 text-slate-600">
-                            {factura.cliente?.nombre || "Cliente desconocido"}
-                          </td>
-                          <td className="py-3 px-4 text-slate-600">
-                            {new Date(factura.fecha).toLocaleDateString("es-DO")}
-                          </td>
-                          <td className="py-3 px-4 text-right font-semibold text-slate-900">
-                            RD${factura.total.toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                factura.estado === "pagada"
-                                  ? "bg-green-100 text-green-800"
-                                  : factura.estado === "pendiente"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {factura.estado}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <button className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
-                              <Eye size={16} />
-                            </button>
-                          </td>
+                <>
+                  {/* Vista desktop */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Número</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Cliente</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Fecha</th>
+                          <th className="text-right py-3 px-4 font-semibold text-slate-700">Total</th>
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Estado</th>
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Acciones</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {facturas.map((factura) => (
+                          <tr key={factura.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 font-medium text-slate-900">{factura.numero_factura}</td>
+                            <td className="py-3 px-4 text-slate-600">
+                              {factura.cliente?.nombre || "Cliente desconocido"}
+                            </td>
+                            <td className="py-3 px-4 text-slate-600">
+                              {new Date(factura.fecha).toLocaleDateString("es-DO")}
+                            </td>
+                            <td className="py-3 px-4 text-right font-semibold text-slate-900">
+                              RD${factura.total.toLocaleString()}
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  factura.estado === "pagada"
+                                    ? "bg-green-100 text-green-800"
+                                    : factura.estado === "pendiente"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {factura.estado}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <button className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
+                                <Eye size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Vista móvil */}
+                  <div className="md:hidden space-y-4">
+                    {facturas.map((factura) => (
+                      <div key={factura.id} className="p-4 border border-slate-200 rounded-lg bg-white">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-slate-900">{factura.numero_factura}</span>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              factura.estado === "pagada"
+                                ? "bg-green-100 text-green-800"
+                                : factura.estado === "pendiente"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {factura.estado}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-1">
+                          Cliente: {factura.cliente?.nombre || "Cliente desconocido"}
+                        </p>
+                        <p className="text-sm text-slate-600 mb-3">
+                          Fecha: {new Date(factura.fecha).toLocaleDateString("es-DO")}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg font-semibold text-slate-900">
+                            RD${factura.total.toLocaleString()}
+                          </span>
+                          <button className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
+                            <Eye size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <div className="text-center py-8 text-slate-500">
                   <FileText size={48} className="mx-auto mb-4 text-slate-300" />

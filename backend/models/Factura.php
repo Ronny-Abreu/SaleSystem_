@@ -116,7 +116,7 @@ class Factura {
             }
             
             if ($producto->stock < $detalle['cantidad']) {
-                throw new Exception("Stock insuficiente para el producto: {$producto->nombre}");
+                throw new Exception("Stock insuficiente para '{$producto->nombre}'. Disponible: {$producto->stock}, Solicitado: {$detalle['cantidad']}");
             }
             
             // Crear el detalle

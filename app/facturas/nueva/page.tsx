@@ -71,6 +71,17 @@ export default function NuevaFactura() {
             }
           }
 
+          // Validar stock cuando se cambia la cantidad
+          if (campo === "cantidad") {
+            const producto = productos.find((p) => p.id === item.producto_id)
+            if (producto && valor > producto.stock) {
+              setError(`Solo hay ${producto.stock} unidades disponibles de "${producto.nombre}"`)
+              itemActualizado.cantidad = producto.stock // Limitar a stock disponible
+            } else {
+              setError(null) // Limpiar error si la cantidad es válida
+            }
+          }
+
           if (campo === "cantidad" || campo === "precio") {
             itemActualizado.total = itemActualizado.cantidad * itemActualizado.precio
           }
@@ -106,6 +117,16 @@ export default function NuevaFactura() {
       const itemsInvalidos = items.filter((item) => !item.producto_id || item.cantidad <= 0 || item.precio <= 0)
       if (itemsInvalidos.length > 0) {
         throw new Error("Todos los artículos deben tener producto, cantidad y precio válidos")
+      }
+
+      // Validar stock disponible
+      for (const item of items) {
+        const producto = productos.find((p) => p.id === item.producto_id)
+        if (producto && item.cantidad > producto.stock) {
+          throw new Error(
+            `Stock insuficiente para "${producto.nombre}". Disponible: ${producto.stock}, Solicitado: ${item.cantidad}`,
+          )
+        }
       }
 
       const subtotal = calcularSubtotal()
@@ -301,12 +322,30 @@ export default function NuevaFactura() {
                             <input
                               type="number"
                               min="1"
+                              max={(() => {
+                                const producto = productos.find((p) => p.id === item.producto_id)
+                                return producto ? producto.stock : undefined
+                              })()}
                               value={item.cantidad}
                               onChange={(e) =>
                                 actualizarItem(item.id, "cantidad", Number.parseInt(e.target.value) || 1)
                               }
                               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
                             />
+                            {item.producto_id > 0 &&
+                              (() => {
+                                const producto = productos.find((p) => p.id === item.producto_id)
+                                return producto ? (
+                                  <p
+                                    className={`text-xs mt-1 ${item.cantidad > producto.stock ? "text-red-600" : "text-slate-500"}`}
+                                  >
+                                    {/* Stock disponible: {producto.stock} */}
+                                    {item.cantidad > producto.stock && (
+                                      <span className="block text-red-600 font-medium">¡Cantidad excede el stock!</span>
+                                    )}
+                                  </p>
+                                ) : null
+                              })()}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">Precio Unit.</label>
