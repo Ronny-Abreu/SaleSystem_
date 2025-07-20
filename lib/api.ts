@@ -1,7 +1,5 @@
+import { API_BASE_URL } from "@/lib/config"
 import type { Cliente, Producto, Factura } from "@/lib/types"
-
-// Configuración base de la API
-const API_BASE_URL = "http://localhost/SaleSystem/backend/api"
 
 // Tipos para las respuestas de la API
 interface ApiResponse<T> {

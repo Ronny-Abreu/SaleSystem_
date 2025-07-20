@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
+import { buildApiUrl } from "@/lib/config"
 
 interface User {
   id: number
@@ -27,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch("http://localhost/salesystem/backend/api/auth.php", {
+      const response = await fetch(buildApiUrl("auth.php"), {
         method: "GET",
         credentials: 'include' // Se incluye las cookies de sesión para guardar
       })
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (username: string, password: string) => {
     try {
-      const response = await fetch("http://localhost/salesystem/backend/api/auth.php", {
+      const response = await fetch(buildApiUrl("auth.php"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       // Método DELETE para logout y destruir la conexión con ese usuario
-      await fetch("http://localhost/salesystem/backend/api/auth.php", {
+      await fetch(buildApiUrl("auth.php"), {
         method: "DELETE",
         credentials: 'include'
       })
