@@ -37,11 +37,21 @@ export function useClientes() {
     }
   }
 
+  const buscarPorId = async (id: number): Promise<Cliente | null> => {
+    try {
+      const response = await clientesApi.getById(id)
+      return response.success ? response.data : null
+    } catch (err) {
+      console.error("Error buscando cliente:", err)
+      return null
+    }
+  }
+
   const crearCliente = async (cliente: Omit<Cliente, "id" | "created_at" | "updated_at">) => {
     try {
       const response = await clientesApi.create(cliente)
       if (response.success) {
-        await fetchClientes()
+        await fetchClientes() // Refrescar la lista
         return response.data
       } else {
         throw new Error(response.message)
@@ -55,7 +65,7 @@ export function useClientes() {
     try {
       const response = await clientesApi.update(id, cliente)
       if (response.success) {
-        await fetchClientes()
+        await fetchClientes() // Refrescar la lista
         return response.data
       } else {
         throw new Error(response.message)
@@ -69,7 +79,7 @@ export function useClientes() {
     try {
       const response = await clientesApi.delete(id)
       if (response.success) {
-        await fetchClientes()
+        await fetchClientes() // Refrescar la lista
       } else {
         throw new Error(response.message)
       }
@@ -88,6 +98,7 @@ export function useClientes() {
     error,
     refetch: fetchClientes,
     buscarPorCodigo,
+    buscarPorId,
     crearCliente,
     actualizarCliente,
     eliminarCliente,
