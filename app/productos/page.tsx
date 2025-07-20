@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Package, Plus, Edit, Trash2, ShoppingCart, Filter, RefreshCw } from "lucide-react"
@@ -19,9 +19,8 @@ const CATEGORIAS = [
 
 export default function ProductosPage() {
   const router = useRouter()
-  const { productos, loading, error, refetch } = useProductos() // Sin filtro, todos los productos
+  const { productos, loading, error, refetch, eliminarProducto } = useProductos()
   const [selectedCategoria, setSelectedCategoria] = useState<number | null>(null)
-
 
   // Filtrar productos por categoría
   const productosFiltrados = selectedCategoria
@@ -42,8 +41,24 @@ export default function ProductosPage() {
       alert("Este producto está inactivo y no se puede usar en facturas")
       return
     }
-    // Redirigir a nueva factura con el producto preseleccionado
     router.push(`/facturas/nueva?producto=${producto.id}`)
+  }
+
+  const handleEditarProducto = (producto: any) => {
+    router.push(`/productos/${producto.id}/editar`)
+  }
+
+  const handleEliminarProducto = async (producto: any) => {
+    if (!confirm(`¿Estás seguro de que quieres desactivar "${producto.nombre}"?`)) {
+      return
+    }
+
+    try {
+      await eliminarProducto(producto.id)
+      alert("Producto desactivado exitosamente")
+    } catch (error) {
+      alert("Error al desactivar el producto: " + (error instanceof Error ? error.message : "Error desconocido"))
+    }
   }
 
   return (
@@ -114,7 +129,7 @@ export default function ProductosPage() {
                   })}
                   {productosSinCategoria.length > 0 && (
                     <button
-                      onClick={() => setSelectedCategoria(0)} // 0 para sin categoría
+                      onClick={() => setSelectedCategoria(0)}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                         selectedCategoria === 0
                           ? "bg-gray-600 text-white"
@@ -152,7 +167,13 @@ export default function ProductosPage() {
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">Productos sin categoría</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {productosSinCategoria.map((producto) => (
-                    <ProductoCard key={producto.id} producto={producto} onRealizarPedido={handleRealizarPedido} />
+                    <ProductoCard
+                      key={producto.id}
+                      producto={producto}
+                      onRealizarPedido={handleRealizarPedido}
+                      onEditar={handleEditarProducto}
+                      onEliminar={handleEliminarProducto}
+                    />
                   ))}
                 </div>
               </div>
@@ -164,7 +185,13 @@ export default function ProductosPage() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {productosFiltrados.map((producto) => (
-                    <ProductoCard key={producto.id} producto={producto} onRealizarPedido={handleRealizarPedido} />
+                    <ProductoCard
+                      key={producto.id}
+                      producto={producto}
+                      onRealizarPedido={handleRealizarPedido}
+                      onEditar={handleEditarProducto}
+                      onEliminar={handleEliminarProducto}
+                    />
                   ))}
                 </div>
               </div>
@@ -181,7 +208,13 @@ export default function ProductosPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {grupo.productos.map((producto) => (
-                        <ProductoCard key={producto.id} producto={producto} onRealizarPedido={handleRealizarPedido} />
+                        <ProductoCard
+                          key={producto.id}
+                          producto={producto}
+                          onRealizarPedido={handleRealizarPedido}
+                          onEditar={handleEditarProducto}
+                          onEliminar={handleEliminarProducto}
+                        />
                       ))}
                     </div>
                   </div>
@@ -198,7 +231,13 @@ export default function ProductosPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {productosSinCategoria.map((producto) => (
-                        <ProductoCard key={producto.id} producto={producto} onRealizarPedido={handleRealizarPedido} />
+                        <ProductoCard
+                          key={producto.id}
+                          producto={producto}
+                          onRealizarPedido={handleRealizarPedido}
+                          onEditar={handleEditarProducto}
+                          onEliminar={handleEliminarProducto}
+                        />
                       ))}
                     </div>
                   </div>
@@ -213,7 +252,17 @@ export default function ProductosPage() {
 }
 
 // Componente para la tarjeta de producto
-function ProductoCard({ producto, onRealizarPedido }: { producto: any; onRealizarPedido: (producto: any) => void }) {
+function ProductoCard({
+  producto,
+  onRealizarPedido,
+  onEditar,
+  onEliminar,
+}: {
+  producto: any
+  onRealizarPedido: (producto: any) => void
+  onEditar: (producto: any) => void
+  onEliminar: (producto: any) => void
+}) {
   return (
     <div className="p-4 border border-slate-200 rounded-lg hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
@@ -222,10 +271,18 @@ function ProductoCard({ producto, onRealizarPedido }: { producto: any; onRealiza
           <p className="text-sm text-slate-600 mt-1">{producto.descripcion}</p>
         </div>
         <div className="flex space-x-1">
-          <button className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded">
+          <button
+            onClick={() => onEditar(producto)}
+            className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+            title="Editar producto"
+          >
             <Edit size={14} />
           </button>
-          <button className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded">
+          <button
+            onClick={() => onEliminar(producto)}
+            className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+            title="Desactivar producto"
+          >
             <Trash2 size={14} />
           </button>
         </div>

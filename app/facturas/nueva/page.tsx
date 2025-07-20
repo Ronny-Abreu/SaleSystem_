@@ -335,15 +335,8 @@ export default function NuevaFactura() {
                             {item.producto_id > 0 &&
                               (() => {
                                 const producto = productos.find((p) => p.id === item.producto_id)
-                                return producto ? (
-                                  <p
-                                    className={`text-xs mt-1 ${item.cantidad > producto.stock ? "text-red-600" : "text-slate-500"}`}
-                                  >
-                                    {/* Stock disponible: {producto.stock} */}
-                                    {item.cantidad > producto.stock && (
-                                      <span className="block text-red-600 font-medium">¡Cantidad excede el stock!</span>
-                                    )}
-                                  </p>
+                                return producto && item.cantidad > producto.stock ? (
+                                  <p className="text-xs mt-1 text-red-600 font-medium">¡Cantidad excede el stock!</p>
                                 ) : null
                               })()}
                           </div>
