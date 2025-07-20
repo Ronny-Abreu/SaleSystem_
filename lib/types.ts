@@ -9,6 +9,16 @@ export interface Cliente {
   updated_at: string
 }
 
+export interface CategoriaProducto {
+  id: number
+  nombre: string
+  descripcion?: string
+  color: string
+  activo: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Producto {
   id: number
   nombre: string
@@ -16,6 +26,8 @@ export interface Producto {
   descripcion?: string
   stock: number
   activo: boolean
+  categoria_id?: number
+  categoria?: CategoriaProducto
   created_at: string
   updated_at: string
 }
