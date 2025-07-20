@@ -14,7 +14,13 @@ export default function FacturasPage() {
   const numero = searchParams.get("numero")
 
   const [showSuccess, setShowSuccess] = useState(false)
-  const { facturas, loading, error } = useFacturas()
+  const [filtroEstado, setFiltroEstado] = useState("")
+  const [filtroFecha, setFiltroFecha] = useState("")
+
+  const { facturas, loading, error } = useFacturas({
+    estado: filtroEstado || undefined,
+    fecha_desde: filtroFecha || undefined,
+  })
 
   useEffect(() => {
     if (success === "true" && numero) {
@@ -65,7 +71,11 @@ export default function FacturasPage() {
               <div className="flex items-center space-x-4">
                 <Filter size={20} className="text-slate-400" />
                 <div className="flex space-x-4">
-                  <select className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <select
+                    value={filtroEstado}
+                    onChange={(e) => setFiltroEstado(e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
                     <option value="">Todos los estados</option>
                     <option value="pagada">Pagadas</option>
                     <option value="pendiente">Pendientes</option>
@@ -73,6 +83,8 @@ export default function FacturasPage() {
                   </select>
                   <input
                     type="date"
+                    value={filtroFecha}
+                    onChange={(e) => setFiltroFecha(e.target.value)}
                     className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -132,9 +144,12 @@ export default function FacturasPage() {
                               </span>
                             </td>
                             <td className="py-3 px-4 text-center">
-                              <button className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
+                              <Link
+                                href={`/facturas/${factura.id}`}
+                                className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"
+                              >
                                 <Eye size={16} />
-                              </button>
+                              </Link>
                             </td>
                           </tr>
                         ))}
@@ -170,9 +185,12 @@ export default function FacturasPage() {
                           <span className="text-lg font-semibold text-slate-900">
                             RD${factura.total.toLocaleString()}
                           </span>
-                          <button className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
+                          <Link
+                            href={`/facturas/${factura.id}`}
+                            className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
                             <Eye size={16} />
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     ))}
