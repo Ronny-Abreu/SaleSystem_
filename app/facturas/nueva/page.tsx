@@ -5,52 +5,55 @@ import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Plus, Minus, Printer, Save, ArrowLeft, Calculator, Package } from "lucide-react"
 import Link from "next/link"
+import { useClientes } from "@/hooks/useClientes"
+import { useProductos } from "@/hooks/useProductos"
+import { useFacturas } from "@/hooks/useFacturas"
+import { useRouter } from "next/navigation"
 
 interface FacturaItem {
   id: string
+  producto_id: number
   nombre: string
   cantidad: number
   precio: number
   total: number
 }
 
-interface Cliente {
-  codigo: string
-  nombre: string
-}
-
 export default function NuevaFactura() {
-  const [cliente, setCliente] = useState<Cliente>({ codigo: "", nombre: "" })
+  const router = useRouter()
+  const { clientes, buscarPorCodigo } = useClientes()
+  const { productos } = useProductos(true) // Solo productos activos
+  const { crearFactura } = useFacturas()
+
+  const [cliente, setCliente] = useState<{ id?: number; codigo: string; nombre: string }>({
+    codigo: "",
+    nombre: "",
+  })
   const [items, setItems] = useState<FacturaItem[]>([])
   const [comentario, setComentario] = useState("")
   const [showPreview, setShowPreview] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Datos de ejemplo para autocompletar
-  const clientesEjemplo = [
-    { codigo: "CLI-001", nombre: "Juan Pérez" },
-    { codigo: "CLI-002", nombre: "María García" },
-    { codigo: "CLI-003", nombre: "Carlos López" },
-  ]
+  const buscarCliente = async (codigo: string) => {
+    setCliente({ codigo, nombre: "" })
 
-  const productosEjemplo = [
-    { id: "1", nombre: "Refresco Coca Cola", precio: 50 },
-    { id: "2", nombre: "Agua Mineral", precio: 25 },
-    { id: "3", nombre: "Sandwich Mixto", precio: 150 },
-    { id: "4", nombre: "Café Americano", precio: 75 },
-  ]
-
-  const buscarCliente = (codigo: string) => {
-    const clienteEncontrado = clientesEjemplo.find((c) => c.codigo === codigo)
-    if (clienteEncontrado) {
-      setCliente(clienteEncontrado)
-    } else {
-      setCliente({ codigo, nombre: "" })
+    if (codigo.length >= 3) {
+      const clienteEncontrado = await buscarPorCodigo(codigo)
+      if (clienteEncontrado) {
+        setCliente({
+          id: clienteEncontrado.id,
+          codigo: clienteEncontrado.codigo,
+          nombre: clienteEncontrado.nombre,
+        })
+      }
     }
   }
 
   const agregarItem = () => {
     const nuevoItem: FacturaItem = {
       id: Date.now().toString(),
+      producto_id: 0,
       nombre: "",
       cantidad: 1,
       precio: 0,
@@ -64,6 +67,16 @@ export default function NuevaFactura() {
       items.map((item) => {
         if (item.id === id) {
           const itemActualizado = { ...item, [campo]: valor }
+
+          // Si se selecciona un producto, actualizar precio
+          if (campo === "producto_id") {
+            const producto = productos.find((p) => p.id === valor)
+            if (producto) {
+              itemActualizado.nombre = producto.nombre
+              itemActualizado.precio = producto.precio
+            }
+          }
+
           if (campo === "cantidad" || campo === "precio") {
             itemActualizado.total = itemActualizado.cantidad * itemActualizado.precio
           }
@@ -80,6 +93,52 @@ export default function NuevaFactura() {
 
   const calcularSubtotal = () => {
     return items.reduce((sum, item) => sum + item.total, 0)
+  }
+
+  const guardarFactura = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Validaciones
+      if (!cliente.id) {
+        throw new Error("Debe seleccionar un cliente válido")
+      }
+
+      if (items.length === 0) {
+        throw new Error("Debe agregar al menos un artículo")
+      }
+
+      const itemsInvalidos = items.filter((item) => !item.producto_id || item.cantidad <= 0 || item.precio <= 0)
+      if (itemsInvalidos.length > 0) {
+        throw new Error("Todos los artículos deben tener producto, cantidad y precio válidos")
+      }
+
+      const subtotal = calcularSubtotal()
+
+      const facturaData = {
+        cliente_id: cliente.id,
+        fecha: new Date().toISOString().split("T")[0],
+        subtotal,
+        total: subtotal,
+        comentario,
+        estado: "pagada" as const,
+        detalles: items.map((item) => ({
+          producto_id: item.producto_id,
+          cantidad: item.cantidad,
+          precio_unitario: item.precio,
+        })),
+      }
+
+      const facturaCreada = await crearFactura(facturaData)
+
+      // Redirigir a la lista de facturas o mostrar la factura creada
+      router.push(`/facturas?success=true&numero=${facturaCreada.numero_factura}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error desconocido")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const numeroFactura = `REC-${String(Date.now()).slice(-3)}`
@@ -112,9 +171,9 @@ export default function NuevaFactura() {
                   <Calculator size={16} />
                   <span>{showPreview ? "Editar" : "Vista previa"}</span>
                 </button>
-                <button className="btn-primary flex items-center space-x-2">
+                <button onClick={guardarFactura} disabled={loading} className="btn-primary flex items-center space-x-2">
                   <Save size={16} />
-                  <span>Guardar</span>
+                  <span>{loading ? "Guardando..." : "Guardar"}</span>
                 </button>
               </div>
             </div>
@@ -122,6 +181,12 @@ export default function NuevaFactura() {
             {!showPreview ? (
               /* Formulario de edición */
               <div className="space-y-6">
+                {error && (
+                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-600">{error}</p>
+                  </div>
+                )}
+
                 {/* Información de la factura */}
                 <div className="card">
                   <h3 className="text-lg font-semibold text-slate-900 mb-4">Información de la Factura</h3>
@@ -191,20 +256,17 @@ export default function NuevaFactura() {
                           <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-slate-700 mb-2">Artículo</label>
                             <select
-                              value={item.nombre}
+                              value={item.producto_id}
                               onChange={(e) => {
-                                const producto = productosEjemplo.find((p) => p.nombre === e.target.value)
-                                if (producto) {
-                                  actualizarItem(item.id, "nombre", producto.nombre)
-                                  actualizarItem(item.id, "precio", producto.precio)
-                                }
+                                const productoId = Number.parseInt(e.target.value)
+                                actualizarItem(item.id, "producto_id", productoId)
                               }}
                               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                              <option value="">Seleccionar artículo</option>
-                              {productosEjemplo.map((producto) => (
-                                <option key={producto.id} value={producto.nombre}>
-                                  {producto.nombre}
+                              <option value={0}>Seleccionar artículo</option>
+                              {productos.map((producto) => (
+                                <option key={producto.id} value={producto.id}>
+                                  {producto.nombre} - RD${producto.precio}
                                 </option>
                               ))}
                             </select>

@@ -1,51 +1,69 @@
+"use client"
+
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { FileText, Users, Package, DollarSign, TrendingUp, Calendar, Plus } from "lucide-react"
 import Link from "next/link"
-
-const stats = [
-  {
-    title: "Facturas Hoy",
-    value: "12",
-    change: "+2.5%",
-    icon: FileText,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-  },
-  {
-    title: "Ingresos Hoy",
-    value: "RD$15,420",
-    change: "+12.3%",
-    icon: DollarSign,
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-  },
-  {
-    title: "Clientes",
-    value: "248",
-    change: "+5.2%",
-    icon: Users,
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-  },
-  {
-    title: "Productos",
-    value: "89",
-    change: "+1.8%",
-    icon: Package,
-    color: "text-orange-600",
-    bgColor: "bg-orange-50",
-  },
-]
-
-const recentInvoices = [
-  { id: "REC-001", client: "Juan Pérez", amount: "RD$1,250", time: "10:30 AM" },
-  { id: "REC-002", client: "María García", amount: "RD$850", time: "11:15 AM" },
-  { id: "REC-003", client: "Carlos López", amount: "RD$2,100", time: "12:45 PM" },
-  { id: "REC-004", client: "Ana Martínez", amount: "RD$675", time: "2:20 PM" },
-]
+import { useEstadisticas } from "@/hooks/useEstadisticas"
+import { useFacturas } from "@/hooks/useFacturas"
+import { useClientes } from "@/hooks/useClientes"
+import { useProductos } from "@/hooks/useProductos"
 
 export default function Home() {
+  const { estadisticas, loading: loadingStats } = useEstadisticas()
+  const { facturas, loading: loadingFacturas } = useFacturas({
+    fecha_desde: new Date().toISOString().split("T")[0], // Solo hoy
+  })
+  const { clientes } = useClientes()
+  const { productos } = useProductos()
+
+  // Calcular estadísticas
+  const stats = [
+    {
+      title: "Facturas Hoy",
+      value: loadingStats ? "..." : estadisticas?.total_facturas.toString() || "0",
+      change: "+2.5%",
+      icon: FileText,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+    },
+    {
+      title: "Ingresos Hoy",
+      value: loadingStats ? "..." : `RD$${estadisticas?.total_ingresos.toLocaleString() || "0"}`,
+      change: "+12.3%",
+      icon: DollarSign,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+    },
+    {
+      title: "Clientes",
+      value: clientes.length.toString(),
+      change: "+5.2%",
+      icon: Users,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+    },
+    {
+      title: "Productos",
+      value: productos.length.toString(),
+      change: "+1.8%",
+      icon: Package,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+    },
+  ]
+
+  // Obtener las facturas más recientes (máximo 4)
+  const recentInvoices = facturas.slice(0, 4).map((factura) => ({
+    id: factura.numero_factura,
+    client: factura.cliente?.nombre || "Cliente desconocido",
+    amount: `RD$${factura.total.toLocaleString()}`,
+    time: new Date(factura.created_at).toLocaleTimeString("es-DO", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  }))
+
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar />
@@ -144,36 +162,39 @@ export default function Home() {
                 Ver todas
               </Link>
             </div>
-            <div className="space-y-4">
-              {recentInvoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <FileText className="text-blue-600" size={20} />
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900">{invoice.id}</p>
-                      <p className="text-sm text-slate-600">{invoice.client}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-slate-900">{invoice.amount}</p>
-                    <p className="text-sm text-slate-600">{invoice.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          {/* SaleSystem - La Rubia */}
-          <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold text-slate-900 mb-4">SaleSystem - La Rubia</h1>
-              <p className="text-slate-600 mb-8">Sistema de facturación moderno y eficiente</p>
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg mx-auto flex items-center justify-center">
-                <span className="text-white font-bold text-2xl">LR</span>
+            {loadingFacturas ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-slate-600 mt-2">Cargando facturas...</p>
               </div>
-            </div>
+            ) : recentInvoices.length > 0 ? (
+              <div className="space-y-4">
+                {recentInvoices.map((invoice) => (
+                  <div key={invoice.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <FileText className="text-blue-600" size={20} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900">{invoice.id}</p>
+                        <p className="text-sm text-slate-600">{invoice.client}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-slate-900">{invoice.amount}</p>
+                      <p className="text-sm text-slate-600">{invoice.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <FileText size={48} className="mx-auto mb-4 text-slate-300" />
+                <p>No hay facturas del día de hoy</p>
+                <p className="text-sm">Las facturas aparecerán aquí cuando se creen</p>
+              </div>
+            )}
           </div>
         </main>
       </div>
