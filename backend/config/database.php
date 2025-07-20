@@ -1,10 +1,17 @@
 <?php
 class Database {
-    private $host = "localhost:3308";
-    private $db_name = "salesystem";
-    private $username = "root";
-    private $password = "";
+    private $host;
+    private $db_name;
+    private $username;
+    private $password;
     public $conn;
+
+    public function __construct() {
+        $this->host = $_ENV['DB_HOST'] ?? 'localhost:3308';
+        $this->db_name = $_ENV['DB_NAME'] ?? 'salesystem';
+        $this->username = $_ENV['DB_USERNAME'] ?? 'root';
+        $this->password = $_ENV['DB_PASSWORD'] ?? '';
+    }
 
     public function getConnection() {
         $this->conn = null;
@@ -21,7 +28,7 @@ class Database {
             http_response_code(500);
             echo json_encode([
                 "error" => true,
-                "message" => "Error de conexión a la base de datos"
+                "message" => "Error de conexión a la base de datos: " . $exception->getMessage()
             ]);
             exit();
         }
