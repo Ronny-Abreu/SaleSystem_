@@ -26,6 +26,7 @@ export default function Home() {
       icon: FileText,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
+      href: "/facturas",
     },
     {
       title: "Ingresos Hoy",
@@ -34,6 +35,7 @@ export default function Home() {
       icon: DollarSign,
       color: "text-green-600",
       bgColor: "bg-green-50",
+      href: "/facturas",
     },
     {
       title: "Clientes",
@@ -42,6 +44,7 @@ export default function Home() {
       icon: Users,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
+      href: "/clientes",
     },
     {
       title: "Productos",
@@ -50,6 +53,7 @@ export default function Home() {
       icon: Package,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
+      href: "/productos",
     },
   ]
 
@@ -134,7 +138,11 @@ export default function Home() {
               {stats.map((stat) => {
                 const Icon = stat.icon
                 return (
-                  <div key={stat.title} className="card">
+                  <Link
+                    key={stat.title}
+                    href={stat.href}
+                    className="card hover:shadow-md transition-shadow cursor-pointer group"
+                  >
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-slate-600">{stat.title}</p>
@@ -144,11 +152,13 @@ export default function Home() {
                           <span className="text-sm text-green-600">{stat.change}</span>
                         </div>
                       </div>
-                      <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
+                      <div
+                        className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}
+                      >
                         <Icon className={stat.color} size={24} />
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
             </div>

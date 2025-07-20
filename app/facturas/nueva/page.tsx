@@ -3,12 +3,14 @@
 import { useState } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { Plus, Minus, Printer, Save, ArrowLeft, Calculator, Package } from "lucide-react"
+import { Plus, Minus, Printer, Save, ArrowLeft, Calculator, Package, Search, Info } from "lucide-react"
 import Link from "next/link"
-import { useClientes } from "@/hooks/useClientes"
 import { useProductos } from "@/hooks/useProductos"
 import { useFacturas } from "@/hooks/useFacturas"
 import { useRouter } from "next/navigation"
+import { ClienteSearchModal } from "@/components/modals/cliente-search-modal"
+import type { Cliente } from "@/lib/types"
+import { ProductoSearchModal } from "@/components/modals/producto-search-modal"
 
 interface FacturaItem {
   id: string
@@ -21,43 +23,35 @@ interface FacturaItem {
 
 export default function NuevaFactura() {
   const router = useRouter()
-  const { clientes, buscarPorCodigo } = useClientes()
   const { productos } = useProductos(true) // Solo productos activos
   const { crearFactura } = useFacturas()
 
-  const [cliente, setCliente] = useState<{ id?: number; codigo: string; nombre: string }>({
-    codigo: "",
-    nombre: "",
-  })
+  const [cliente, setCliente] = useState<Cliente | null>(null)
   const [items, setItems] = useState<FacturaItem[]>([])
   const [comentario, setComentario] = useState("")
   const [showPreview, setShowPreview] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showClienteModal, setShowClienteModal] = useState(false)
+  const [showProductoModal, setShowProductoModal] = useState(false)
+  const [estadoFactura, setEstadoFactura] = useState<"pagada" | "pendiente">("pagada")
 
-  const buscarCliente = async (codigo: string) => {
-    setCliente({ codigo, nombre: "" })
-
-    if (codigo.length >= 3) {
-      const clienteEncontrado = await buscarPorCodigo(codigo)
-      if (clienteEncontrado) {
-        setCliente({
-          id: clienteEncontrado.id,
-          codigo: clienteEncontrado.codigo,
-          nombre: clienteEncontrado.nombre,
-        })
-      }
-    }
+  const handleSelectCliente = (clienteSeleccionado: Cliente) => {
+    setCliente(clienteSeleccionado)
   }
 
   const agregarItem = () => {
+    setShowProductoModal(true)
+  }
+
+  const handleSelectProducto = (producto: any, cantidad: number) => {
     const nuevoItem: FacturaItem = {
       id: Date.now().toString(),
-      producto_id: 0,
-      nombre: "",
-      cantidad: 1,
-      precio: 0,
-      total: 0,
+      producto_id: producto.id,
+      nombre: producto.nombre,
+      cantidad: cantidad,
+      precio: producto.precio,
+      total: cantidad * producto.precio,
     }
     setItems([...items, nuevoItem])
   }
@@ -101,7 +95,7 @@ export default function NuevaFactura() {
       setError(null)
 
       // Validaciones
-      if (!cliente.id) {
+      if (!cliente) {
         throw new Error("Debe seleccionar un cliente válido")
       }
 
@@ -122,7 +116,7 @@ export default function NuevaFactura() {
         subtotal,
         total: subtotal,
         comentario,
-        estado: "pagada" as const,
+        estado: estadoFactura,
         detalles: items.map((item) => ({
           producto_id: item.producto_id,
           cantidad: item.cantidad,
@@ -197,7 +191,7 @@ export default function NuevaFactura() {
                         type="text"
                         value={numeroFactura}
                         disabled
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-600"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-800 font-medium"
                       />
                     </div>
                     <div>
@@ -206,34 +200,65 @@ export default function NuevaFactura() {
                         type="text"
                         value={fechaActual}
                         disabled
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-600"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-800 font-medium"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Estado</label>
+                      <select
+                        value={estadoFactura}
+                        onChange={(e) => setEstadoFactura(e.target.value as "pagada" | "pendiente")}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                      >
+                        <option value="pagada">Pagada</option>
+                        <option value="pendiente">Pendiente</option>
+                      </select>
                     </div>
                   </div>
                 </div>
 
                 {/* Información del cliente */}
                 <div className="card">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Información del Cliente</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900">Información del Cliente</h3>
+                    <div className="flex items-center space-x-2">
+                      <div className="group relative">
+                        <button className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
+                          <Info size={16} />
+                        </button>
+                        <div className="absolute right-0 top-8 w-64 p-3 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                          Recuerda que debes tener el cliente registrado para solo tener que buscarlo en la lupa y se
+                          autocomplete con su código y nombre correspondiente.
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowClienteModal(true)}
+                        className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                      >
+                        <Search size={16} />
+                        <span>Buscar Cliente</span>
+                      </button>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Código del Cliente</label>
                       <input
                         type="text"
-                        value={cliente.codigo}
-                        onChange={(e) => buscarCliente(e.target.value)}
-                        placeholder="CLI-001"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={cliente?.codigo || ""}
+                        disabled
+                        placeholder="Selecciona un cliente"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-800 font-medium placeholder-slate-500"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Nombre del Cliente</label>
                       <input
                         type="text"
-                        value={cliente.nombre}
-                        onChange={(e) => setCliente({ ...cliente, nombre: e.target.value })}
-                        placeholder="Nombre completo"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={cliente?.nombre || ""}
+                        disabled
+                        placeholder="Selecciona un cliente"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-800 font-medium placeholder-slate-500"
                       />
                     </div>
                   </div>
@@ -261,7 +286,7 @@ export default function NuevaFactura() {
                                 const productoId = Number.parseInt(e.target.value)
                                 actualizarItem(item.id, "producto_id", productoId)
                               }}
-                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
                             >
                               <option value={0}>Seleccionar artículo</option>
                               {productos.map((producto) => (
@@ -280,7 +305,7 @@ export default function NuevaFactura() {
                               onChange={(e) =>
                                 actualizarItem(item.id, "cantidad", Number.parseInt(e.target.value) || 1)
                               }
-                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
                             />
                           </div>
                           <div>
@@ -293,7 +318,7 @@ export default function NuevaFactura() {
                               onChange={(e) =>
                                 actualizarItem(item.id, "precio", Number.parseFloat(e.target.value) || 0)
                               }
-                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
                             />
                           </div>
                           <div className="flex items-center justify-between">
@@ -331,7 +356,7 @@ export default function NuevaFactura() {
                       onChange={(e) => setComentario(e.target.value)}
                       placeholder="Comentarios adicionales (opcional)"
                       rows={4}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-slate-800 placeholder-slate-500"
                     />
                   </div>
 
@@ -371,8 +396,8 @@ export default function NuevaFactura() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 mb-2">Cliente</h3>
-                    <p className="text-slate-600">Código: {cliente.codigo || "N/A"}</p>
-                    <p className="text-slate-600">Nombre: {cliente.nombre || "N/A"}</p>
+                    <p className="text-slate-600">Código: {cliente?.codigo || "N/A"}</p>
+                    <p className="text-slate-600">Nombre: {cliente?.nombre || "N/A"}</p>
                   </div>
                 </div>
 
@@ -437,6 +462,20 @@ export default function NuevaFactura() {
           </div>
         </main>
       </div>
+
+      {/* Modal de búsqueda de clientes */}
+      <ClienteSearchModal
+        isOpen={showClienteModal}
+        onClose={() => setShowClienteModal(false)}
+        onSelectCliente={handleSelectCliente}
+      />
+
+      {/* Modal de selección de productos */}
+      <ProductoSearchModal
+        isOpen={showProductoModal}
+        onClose={() => setShowProductoModal(false)}
+        onSelectProducto={handleSelectProducto}
+      />
     </div>
   )
 }
