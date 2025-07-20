@@ -2,17 +2,19 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, Save, User } from "lucide-react"
 import Link from "next/link"
 import { useClientes } from "@/hooks/useClientes"
 import { useRouter } from "next/navigation"
+import { useCodigoCliente } from "@/hooks/useCodigoCliente"
 
 export default function NuevoCliente() {
   const router = useRouter()
   const { crearCliente } = useClientes()
+  const { siguienteCodigo, loading: loadingCodigo } = useCodigoCliente()
 
   const [formData, setFormData] = useState({
     codigo: "",
@@ -21,6 +23,13 @@ export default function NuevoCliente() {
     email: "",
     direccion: "",
   })
+
+  // Actualizar el código cuando esté disponible (SE CREARÁ UN CODIGO SECUENCIAL PARA CADA USUARIO EN AUTOMATICO)
+  useEffect(() => {
+    if (siguienteCodigo && !formData.codigo) {
+      setFormData((prev) => ({ ...prev, codigo: siguienteCodigo }))
+    }
+  }, [siguienteCodigo])
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -100,10 +109,8 @@ export default function NuevoCliente() {
                       type="text"
                       name="codigo"
                       value={formData.codigo}
-                      onChange={handleChange}
-                      placeholder="CLI-001"
-                      required
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                      readOnly
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-800 font-medium"
                     />
                   </div>
 
