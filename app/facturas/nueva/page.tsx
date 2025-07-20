@@ -416,7 +416,7 @@ export default function NuevaFactura() {
                   <h1 className="text-2xl font-bold text-slate-900">La Rubia</h1>
                   <p className="text-slate-600">Sistema de Facturación</p>
                   <div className="mt-4 p-2 bg-slate-100 rounded-lg inline-block">
-                    <p className="font-semibold">Factura: {numeroFactura}</p>
+                    <p className="font-semibold text-slate-800">Factura: {numeroFactura}</p>
                   </div>
                 </div>
 

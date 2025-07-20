@@ -102,12 +102,12 @@ export default function ReportesPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-slate-900">Seleccionar Período</h2>
                 <div className="flex items-center space-x-4">
-                  <Calendar size={20} className="text-slate-400" />
+                  <Calendar size={20} className="text-slate-900" />
                   <input
                     type="month"
                     value={mesSeleccionado}
                     onChange={(e) => setMesSeleccionado(e.target.value)}
-                    className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>

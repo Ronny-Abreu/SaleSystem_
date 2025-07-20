@@ -189,9 +189,9 @@ export function LoginModal({ isOpen }: LoginModalProps) {
 
           <div className="mt-8 pt-6" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
             <div className="text-center">
-              <p className="text-sm text-gray-200 mb-3 drop-shadow-sm">Usuarios de prueba:</p>
+              <p className="text-sm text-gray-200 mb-3 drop-shadow-sm">Usuario de prueba para ver Demo:</p>
               <div className="space-y-2 text-xs text-gray-300">
-                <div 
+                {/* <div 
                   className="p-3 rounded-lg backdrop-blur-sm"
                   style={{
                     background: 'rgba(255, 255, 255, 0.1)',
@@ -199,7 +199,7 @@ export function LoginModal({ isOpen }: LoginModalProps) {
                   }}
                 >
                   <strong className="text-white">admin</strong> / SaleSystem (Administrador)
-                </div>
+                </div> */}
                 <div 
                   className="p-3 rounded-lg backdrop-blur-sm"
                   style={{

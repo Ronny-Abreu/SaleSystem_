@@ -127,7 +127,7 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
               placeholder="Buscar productos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -247,7 +247,7 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
                   max={selectedProducto.stock}
                   value={cantidad}
                   onChange={(e) => handleCantidadChange(Number.parseInt(e.target.value) || 1)}
-                  className="w-20 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                  className="w-20 px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
                   disabled={selectedProducto.stock === 0}
                 />
                 <span className="text-sm text-slate-600">de {selectedProducto.stock}</span>
