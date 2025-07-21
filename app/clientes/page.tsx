@@ -140,11 +140,11 @@ export default function ClientesPage() {
                               </h3>
                               {tieneDeuda && (
                                 <span title="Cliente con deuda pendiente">
-                                  <AlertTriangle
-                                    size={16}
-                                    className="text-red-500 flex-shrink-0"
-                                  />
-                                </span>
+                                <AlertTriangle
+                                  size={16}
+                                  className="text-red-500 flex-shrink-0"
+                                />
+                              </span>
                               )}
                             </div>
                             <p className="text-sm text-slate-600">Código: {cliente.codigo}</p>
