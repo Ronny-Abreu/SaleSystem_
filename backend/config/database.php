@@ -8,12 +8,24 @@ class Database {
     public $conn;
 
     public function __construct() {
-        // Intenta múltiples formatos de variables de entorno
-        $this->host = $_ENV['DB_HOST'] ?? $_ENV['MYSQL_HOST'] ?? getenv('DB_HOST') ?? getenv('MYSQL_HOST') ?? 'localhost';
-        $this->port = $_ENV['DB_PORT'] ?? $_ENV['MYSQL_PORT'] ?? getenv('DB_PORT') ?? getenv('MYSQL_PORT') ?? '3306';
-        $this->db_name = $_ENV['DB_NAME'] ?? $_ENV['MYSQL_DATABASE'] ?? getenv('DB_NAME') ?? getenv('MYSQL_DATABASE') ?? 'railway';
-        $this->username = $_ENV['DB_USERNAME'] ?? $_ENV['MYSQL_USER'] ?? getenv('DB_USERNAME') ?? getenv('MYSQL_USER') ?? 'root';
-        $this->password = $_ENV['DB_PASSWORD'] ?? $_ENV['MYSQL_PASSWORD'] ?? getenv('DB_PASSWORD') ?? getenv('MYSQL_PASSWORD') ?? '';
+        // Si existe MYSQL_URL, úsala (Railway genera esto automáticamente)
+        $mysql_url = $_ENV['MYSQL_URL'] ?? $_ENV['MYSQL_PRIVATE_URL'] ?? getenv('MYSQL_URL') ?? getenv('MYSQL_PRIVATE_URL') ?? null;
+        
+        if ($mysql_url) {
+            $url_parts = parse_url($mysql_url);
+            $this->host = $url_parts['host'];
+            $this->port = $url_parts['port'] ?? 3306;
+            $this->db_name = ltrim($url_parts['path'], '/');
+            $this->username = $url_parts['user'];
+            $this->password = $url_parts['pass'] ?? '';
+        } else {
+            // Intenta múltiples formatos de variables de entorno
+            $this->host = $_ENV['DB_HOST'] ?? $_ENV['MYSQL_HOST'] ?? getenv('DB_HOST') ?? getenv('MYSQL_HOST') ?? 'localhost';
+            $this->port = $_ENV['DB_PORT'] ?? $_ENV['MYSQL_PORT'] ?? getenv('DB_PORT') ?? getenv('MYSQL_PORT') ?? '3306';
+            $this->db_name = $_ENV['DB_NAME'] ?? $_ENV['MYSQL_DATABASE'] ?? getenv('DB_NAME') ?? getenv('MYSQL_DATABASE') ?? 'railway';
+            $this->username = $_ENV['DB_USERNAME'] ?? $_ENV['MYSQL_USER'] ?? getenv('DB_USERNAME') ?? getenv('MYSQL_USER') ?? 'root';
+            $this->password = $_ENV['DB_PASSWORD'] ?? $_ENV['MYSQL_PASSWORD'] ?? getenv('DB_PASSWORD') ?? getenv('MYSQL_PASSWORD') ?? '';
+        }
     }
 
     public function getConnection() {
