@@ -7,10 +7,11 @@ class Database {
     public $conn;
 
     public function __construct() {
-        $this->host = $_ENV['DB_HOST'] ?? 'localhost:3308';
-        $this->db_name = $_ENV['DB_NAME'] ?? 'salesystem';
-        $this->username = $_ENV['DB_USERNAME'] ?? 'root';
-        $this->password = $_ENV['DB_PASSWORD'] ?? '';
+        // Railway incluye el puerto en MYSQL_HOST
+        $this->host = $_ENV['MYSQL_HOST'] ?? 'localhost';
+        $this->db_name = $_ENV['MYSQL_DATABASE'] ?? 'railway';
+        $this->username = $_ENV['MYSQL_USER'] ?? 'root';
+        $this->password = $_ENV['MYSQL_PASSWORD'] ?? '';
     }
 
     public function getConnection() {
@@ -18,7 +19,7 @@ class Database {
         
         try {
             $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8",
+                "mysql:host=" . $this->host . ";port=3306;dbname=" . $this->db_name . ";charset=utf8",
                 $this->username, 
                 $this->password
             );
