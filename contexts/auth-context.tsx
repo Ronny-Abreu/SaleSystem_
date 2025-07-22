@@ -1,23 +1,24 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 import { buildApiUrl } from "@/lib/config"
+
 
 interface User {
   id: number
   username: string
   nombre: string
-  email?: string
-  rol: "admin" | "vendedor"
+  rol: string
 }
 
 interface AuthContextType {
   user: User | null
+  isAuthenticated: boolean
+  loading: boolean
   login: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
-  loading: boolean
-  isAuthenticated: boolean
+  checkAuth: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -30,12 +31,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await fetch(buildApiUrl("auth.php"), {
         method: "GET",
-        credentials: 'include' // Se incluye las cookies de sesión para guardar
+        credentials: "include", // Importante para sesiones
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
-      const data = await response.json()
 
-      if (data.success) {
-        setUser(data.data)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          setUser(data.data)
+        } else {
+          setUser(null)
+        }
       } else {
         setUser(null)
       }
@@ -48,38 +56,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const login = async (username: string, password: string) => {
-    try {
-      const response = await fetch(buildApiUrl("auth.php"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: 'include', // Se incluye las cookies de sesión para guardar
-        body: JSON.stringify({ username, password }),
-      })
+    const response = await fetch(buildApiUrl("auth.php"), {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, password }),
+    })
 
-      const data = await response.json()
+    const data = await response.json()
 
-      if (data.success) {
-        setUser(data.data)
-      } else {
-        throw new Error(data.message || "Error de autenticación")
-      }
-    } catch (error) {
-      throw error
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Error de autenticación")
     }
+
+    setUser(data.data)
   }
 
   const logout = async () => {
     try {
-      // Método DELETE para logout y destruir la conexión con ese usuario
       await fetch(buildApiUrl("auth.php"), {
         method: "DELETE",
-        credentials: 'include'
+        credentials: "include",
       })
-      setUser(null)
     } catch (error) {
       console.error("Error during logout:", error)
+    } finally {
       setUser(null)
     }
   }
@@ -88,19 +91,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth()
   }, [])
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
-        loading,
-        isAuthenticated: !!user,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
+  const value = {
+    user,
+    isAuthenticated: !!user,
+    loading,
+    login,
+    logout,
+    checkAuth,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
