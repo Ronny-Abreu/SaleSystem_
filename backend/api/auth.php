@@ -1,4 +1,9 @@
 <?php
+// Configurar sesiones para que funcionen en producción
+ini_set('session.cookie_samesite', 'None');
+ini_set('session.cookie_secure', '1');
+ini_set('session.cookie_httponly', '1');
+
 session_start();
 
 require_once '../utils/cors.php';
@@ -45,7 +50,7 @@ try {
             break;
             
         case 'GET':
-            // Verificar sesión
+            // Verificar sesión o auto-login con Demo
             if (isset($_SESSION['user_id'])) {
                 $user_data = array(
                     "id" => $_SESSION['user_id'],
@@ -55,7 +60,24 @@ try {
                 );
                 ApiResponse::success($user_data, "Sesión válida");
             } else {
-                ApiResponse::error("No hay sesión activa", 401);
+                // Auto-login con usuario Demo
+                if ($usuario->authenticate('Demo', 'tareafacil2025')) {
+                    $_SESSION['user_id'] = $usuario->id;
+                    $_SESSION['username'] = $usuario->username;
+                    $_SESSION['nombre'] = $usuario->nombre;
+                    $_SESSION['rol'] = $usuario->rol;
+                    
+                    $user_data = array(
+                        "id" => $usuario->id,
+                        "username" => $usuario->username,
+                        "nombre" => $usuario->nombre,
+                        "rol" => $usuario->rol
+                    );
+                    
+                    ApiResponse::success($user_data, "Auto-login exitoso");
+                } else {
+                    ApiResponse::error("No hay sesión activa", 401);
+                }
             }
             break;
             

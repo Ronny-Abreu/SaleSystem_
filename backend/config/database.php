@@ -8,42 +8,55 @@ class Database {
     public $conn;
 
     public function __construct() {
-        // Detectar entorno
+        // Detectar entorno de forma más confiable
         if ($this->isLocalEnvironment()) {
-            // Configuración hardcodeada para desarrollo local (XAMPP)
+            // Configuración para desarrollo local (XAMPP)
             $this->host = 'localhost';
             $this->port = '3308';
-            $this->db_name = 'salesystem'; //
+            $this->db_name = 'salesystem';
             $this->username = 'root';
-            $this->password = ''; //
+            $this->password = '';
             
-            error_log("🏠 Usando configuración LOCAL");
+            error_log("🏠 Entorno LOCAL detectado");
         } else {
             // Configuración para producción
             $this->loadProductionConfig();
-            error_log("🌐 Usando configuración PRODUCCIÓN");
+            error_log("🌐 Entorno PRODUCCIÓN detectado");
         }
     }
 
     private function isLocalEnvironment() {
-        return (
-            (isset($_SERVER['HTTP_HOST']) && (
+        // Verificar múltiples indicadores de entorno local
+        $local_indicators = [
+            // Verificar host
+            isset($_SERVER['HTTP_HOST']) && (
                 $_SERVER['HTTP_HOST'] === 'localhost' ||
                 strpos($_SERVER['HTTP_HOST'], 'localhost:') === 0 ||
                 $_SERVER['HTTP_HOST'] === '127.0.0.1' ||
                 strpos($_SERVER['HTTP_HOST'], '127.0.0.1:') === 0
-            )) ||
-            (isset($_SERVER['SERVER_NAME']) && (
+            ),
+            // Verificar server name
+            isset($_SERVER['SERVER_NAME']) && (
                 $_SERVER['SERVER_NAME'] === 'localhost' ||
                 $_SERVER['SERVER_NAME'] === '127.0.0.1'
-            )) ||
-            (!isset($_ENV['MYSQL_URL']) && !getenv('MYSQL_URL'))
-        );
+            ),
+            // Verificar si NO hay variables de entorno de producción
+            empty($_ENV['MYSQL_URL']) && empty(getenv('MYSQL_URL')) && 
+            empty($_ENV['MYSQL_PRIVATE_URL']) && empty(getenv('MYSQL_PRIVATE_URL')),
+            // Verificar si estamos en Windows (típico de desarrollo local)
+            stripos(PHP_OS, 'WIN') === 0
+        ];
+        
+        // Si cualquiera de estos es verdadero, es local
+        return array_reduce($local_indicators, function($carry, $indicator) {
+            return $carry || $indicator;
+        }, false);
     }
 
     private function loadProductionConfig() {
-        // Para producción (Railway, etc.)
-        $mysql_url = $_ENV['MYSQL_URL'] ?? $_ENV['MYSQL_PRIVATE_URL'] ?? getenv('MYSQL_URL') ?? getenv('MYSQL_PRIVATE_URL') ?? null;
+        // Para Railway y otros servicios
+        $mysql_url = $_ENV['MYSQL_URL'] ?? $_ENV['MYSQL_PRIVATE_URL'] ?? 
+                     getenv('MYSQL_URL') ?? getenv('MYSQL_PRIVATE_URL') ?? null;
         
         if ($mysql_url) {
             $url_parts = parse_url($mysql_url);
@@ -53,7 +66,7 @@ class Database {
             $this->username = $url_parts['user'];
             $this->password = $url_parts['pass'] ?? '';
         } else {
-            // Fallback para otras configuraciones de producción
+            // Fallback
             $this->host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?? 'localhost';
             $this->port = $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?? '3306';
             $this->db_name = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?? 'railway';
@@ -66,13 +79,6 @@ class Database {
         $this->conn = null;
         
         try {
-            error_log("=== INTENTO DE CONEXIÓN ===");
-            error_log("Host: {$this->host}");
-            error_log("Puerto: {$this->port}");
-            error_log("Base de datos: {$this->db_name}");
-            error_log("Usuario: {$this->username}");
-            error_log("Entorno: " . ($this->isLocalEnvironment() ? 'LOCAL' : 'PRODUCCIÓN'));
-            
             $dsn = "mysql:host={$this->host};port={$this->port};dbname={$this->db_name};charset=utf8mb4";
             
             $this->conn = new PDO(
@@ -83,25 +89,21 @@ class Database {
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
-                    PDO::ATTR_TIMEOUT => 10,
+                    PDO::ATTR_TIMEOUT => 30,
                     PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
                 ]
             );
             
-            error_log("✅ Conexión exitosa");
-            
         } catch(PDOException $exception) {
-            error_log("❌ Error de conexión: " . $exception->getMessage());
-            
             http_response_code(500);
             echo json_encode([
                 "error" => true,
                 "message" => "Error de conexión a la base de datos: " . $exception->getMessage(),
                 "debug" => [
-                    "host" => $this->host,
-                    "port" => $this->port,
-                    "database" => $this->db_name,
-                    "username" => $this->username,
+                    "host" => !empty($this->host) ? $this->host : false,
+                    "port" => !empty($this->port) ? $this->port : false,
+                    "database" => !empty($this->db_name) ? $this->db_name : false,
+                    "username" => !empty($this->username) ? $this->username : false,
                     "is_local" => $this->isLocalEnvironment()
                 ]
             ]);

@@ -1,38 +1,33 @@
 <?php
-// Configuración CORS para permitir requests desde múltiples orígenes
+// Configuración CORS mejorada
 function setCorsHeaders() {
-    // Lista de orígenes permitidos
+    // Lista de orígenes permitidos específicos
     $allowed_origins = [
-        'http://localhost:3000', // Para desarrollo local
+        'http://localhost:3000',
+
+        //Rama main
+        'https://sale-system-liard.vercel.app',
+
+        // Desarrollo en rama fixLogin producción pruebas antes de producción rama main
+        'https://sale-system-ronny-de-leons-projects.vercel.app'
     ];
-    
-    // La URL del frontend desde variable de entorno
-    $frontend_url = getenv('FRONTEND_URL');
-    if ($frontend_url) {
-        $allowed_origins[] = $frontend_url;
-    }
-    
-    // tu chave, por si acaso y curarme en salud
-    $allowed_origins[] = 'https://sale-system-liard.vercel.app';
     
     // Obtener el origen de la request
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
     
-    // Debug: Log para ver qué origen está llegando
-    error_log("Origin recibido: " . $origin);
-    error_log("Orígenes permitidos: " . implode(', ', $allowed_origins));
-    
-    // Verificar si el origen está en la lista permitida
+    // Verificar si el origen está permitido
     if (in_array($origin, $allowed_origins)) {
         header("Access-Control-Allow-Origin: $origin");
     } else {
-        // Fallback para desarrollo - puedes quitar esto en producción
-        header("Access-Control-Allow-Origin: *");
+        // Para desarrollo local, permitir localhost
+        if (strpos($origin, 'localhost') !== false || strpos($origin, '127.0.0.1') !== false) {
+            header("Access-Control-Allow-Origin: $origin");
+        }
     }
     
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
     header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
-    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Credentials: true"); // Importante para sesiones
     header("Content-Type: application/json; charset=UTF-8");
     
     // Manejar preflight requests
