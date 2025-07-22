@@ -13,6 +13,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   const url = `${API_BASE_URL}/${endpoint}`
 
   const defaultOptions: RequestInit = {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -184,4 +185,20 @@ export const facturasApi = {
     }
     return apiRequest(endpoint)
   },
+}
+
+// API de Autenticación
+export const authApi = {
+  login: (username: string, password: string) =>
+    apiRequest("auth.php", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
+
+  checkAuth: () => apiRequest("auth.php"),
+
+  logout: () =>
+    apiRequest("auth.php", {
+      method: "DELETE",
+    }),
 }
