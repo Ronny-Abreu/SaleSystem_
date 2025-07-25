@@ -122,16 +122,16 @@ export default function Home() {
 
           {/* Stats */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4">
               <h2 className="text-lg font-semibold text-slate-900">Estadísticas del Día</h2>
-              <div className="flex items-center text-sm text-slate-600">
-                <Calendar size={16} className="mr-2" />
-                {new Date().toLocaleDateString("es-DO", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+              <div className="flex items-center text-sm text-slate-600 mt-1">
+              <Calendar size={16} className="mr-2" />
+              {new Date().toLocaleDateString("es-DO", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
