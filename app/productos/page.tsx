@@ -71,24 +71,29 @@ export default function ProductosPage() {
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-6xl mx-auto">
             {/* Header con botones */}
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">Inventario de Productos</h1>
-                <p className="text-slate-600">
-                  Productos organizados por categorías ({productos.length} productos total)
-                </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
+              <div className="flex flex-col">
+              <h1 className="text-2xl font-bold text-slate-900">Inventario de Productos</h1>
+              <p className="text-slate-600 sm:mt-0 mt-1">
+                Productos organizados por categorías ({productos.length} productos total)
+              </p>
               </div>
               <div className="flex space-x-3">
                 <button
                   onClick={refetch}
-                  className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                  className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors
+                  text-sm sm:text-base sm:px-3 sm:py-2 px-2 py-1"
                 >
-                  <RefreshCw size={16} />
-                  <span>Refrescar</span>
+                  <RefreshCw size={16} className="sm:w-4 sm:h-4 w-3 h-3" />
+                  <span className="hidden xs:inline">Refrescar</span>
                 </button>
-                <Link href="/productos/nuevo" className="btn-primary flex items-center space-x-2">
-                  <Plus size={16} />
-                  <span>Nuevo Producto</span>
+                <Link
+                  href="/productos/nuevo"
+                  className="btn-primary flex items-center space-x-2
+                  text-base sm:text-base sm:px-3 sm:py-2 px-4 py-2"
+                >
+                  <Plus size={18} className="sm:w-4 sm:h-4 w-4 h-4" />
+                  <span>Nuevo producto</span>
                 </Link>
               </div>
             </div>

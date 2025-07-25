@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, X, Package, Check, Filter, AlertCircle } from "lucide-react"
+import { Search, X, Package, Check, Filter, AlertCircle, ShoppingCart } from "lucide-react"
 import { useProductos } from "@/hooks/useProductos"
 import type { Producto, CategoriaProducto } from "@/lib/types"
 
@@ -15,10 +15,13 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
   const { productos, loading } = useProductos(true) // Solo productos activos
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategoria, setSelectedCategoria] = useState<number | null>(null)
-  const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null)
-  const [cantidad, setCantidad] = useState(1)
+  const [selectedProductos, setSelectedProductos] = useState<{
+    [key: number]: { producto: Producto; cantidad: number }
+  }>({})
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [isCartAnimating, setIsCartAnimating] = useState(false)
 
   // Obtener categorías únicas de los productos
   const categorias = productos.reduce((acc, producto) => {
@@ -49,63 +52,150 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
   }, [searchTerm, selectedCategoria, productos])
 
   const handleSelectProducto = (producto: Producto) => {
-    setSelectedProducto(producto)
-    setCantidad(1)
     setError(null)
 
     if (producto.stock === 0) {
       setError(`El producto "${producto.nombre}" no tiene stock disponible`)
+      return
+    }
+
+    // Permitir deseleccionar haciendo click nuevamente
+    if (selectedProductos[producto.id]) {
+      const newSelected = { ...selectedProductos }
+      delete newSelected[producto.id]
+      setSelectedProductos(newSelected)
+    } else {
+      setSelectedProductos({
+        ...selectedProductos,
+        [producto.id]: { producto, cantidad: 1 },
+      })
     }
   }
 
-  const handleCantidadChange = (nuevaCantidad: number) => {
-    setCantidad(nuevaCantidad)
-    setError(null)
+  const handleCantidadChange = (productoId: number, nuevaCantidad: number) => {
+    if (selectedProductos[productoId]) {
+      const producto = selectedProductos[productoId].producto
 
-    if (selectedProducto && nuevaCantidad > selectedProducto.stock) {
-      setError(`Solo hay ${selectedProducto.stock} unidades disponibles de "${selectedProducto.nombre}"`)
+      if (nuevaCantidad > producto.stock) {
+        setError(`Solo hay ${producto.stock} unidades disponibles de "${producto.nombre}"`)
+        return
+      }
+
+      setSelectedProductos({
+        ...selectedProductos,
+        [productoId]: {
+          ...selectedProductos[productoId],
+          cantidad: nuevaCantidad,
+        },
+      })
+      setError(null)
     }
   }
 
   const handleConfirmarSeleccion = () => {
-    if (!selectedProducto) {
-      setError("Debe elegir un producto")
+    const productosSeleccionados = Object.values(selectedProductos)
+
+    if (productosSeleccionados.length === 0) {
+      setError("Debe elegir al menos un producto")
       return
     }
 
-    if (cantidad <= 0) {
-      setError("La cantidad debe ser mayor a 0")
-      return
+    // Validar stock para todos los productos
+    for (const item of productosSeleccionados) {
+      if (item.cantidad <= 0) {
+        setError("La cantidad debe ser mayor a 0")
+        return
+      }
+
+      if (item.cantidad > item.producto.stock) {
+        setError(`Solo hay ${item.producto.stock} unidades disponibles de "${item.producto.nombre}"`)
+        return
+      }
+
+      if (item.producto.stock === 0) {
+        setError("Algunos productos no tienen stock disponible")
+        return
+      }
     }
 
-    if (cantidad > selectedProducto.stock) {
-      setError(`Solo hay ${selectedProducto.stock} unidades disponibles`)
-      return
-    }
+    // Animación unificada para móvil y desktop
+    setIsCartAnimating(true)
 
-    if (selectedProducto.stock === 0) {
-      setError("Este producto no tiene stock disponible")
-      return
-    }
-
-    onSelectProducto(selectedProducto, cantidad)
-    handleClose()
+    setTimeout(() => {
+      setShowSuccessMessage(true)
+      setTimeout(
+        () => {
+          // Agregar todos los productos
+          productosSeleccionados.forEach((item) => {
+            onSelectProducto(item.producto, item.cantidad)
+          })
+          handleClose()
+        },
+        window.innerWidth < 768 ? 1500 : 1000,
+      ) // Menos tiempo en desktop
+    }, 1000)
   }
 
   const handleClose = () => {
     onClose()
-    setSelectedProducto(null)
-    setCantidad(1)
+    setSelectedProductos({})
     setSearchTerm("")
     setSelectedCategoria(null)
     setError(null)
+    setShowSuccessMessage(false)
+    setIsCartAnimating(false)
+  }
+
+  const calcularTotal = () => {
+    return Object.values(selectedProductos).reduce((total, item) => {
+      return total + item.producto.precio * item.cantidad
+    }, 0)
   }
 
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+      {/* Mensaje de éxito para móvil y desktop */}
+      {showSuccessMessage && (
+        <div className="absolute inset-0 flex items-center justify-center z-60">
+          <div className="bg-white rounded-lg p-6 shadow-xl text-center animate-fade-in">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check size={32} className="text-green-600" />
+            </div>
+            <p className="text-lg font-semibold text-slate-900 mb-2">¡Productos agregados exitosamente!</p>
+            <p className="text-sm text-slate-600">
+              {Object.values(selectedProductos).length} producto
+              {Object.values(selectedProductos).length !== 1 ? "s" : ""} agregado
+              {Object.values(selectedProductos).length !== 1 ? "s" : ""} a la factura
+            </p>
+
+            {/* Animación de productos */}
+            <div className="mt-4 flex justify-center space-x-2">
+              {Object.values(selectedProductos)
+                .slice(0, 3)
+                .map((item, index) => (
+                  <div
+                    key={item.producto.id}
+                    className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center animate-bounce"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <Package size={16} className="text-blue-600" />
+                  </div>
+                ))}
+              {Object.values(selectedProductos).length > 3 && (
+                <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
+                  <span className="text-xs text-slate-600">+{Object.values(selectedProductos).length - 3}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div
+        className={`bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col ${showSuccessMessage ? "opacity-0" : ""}`}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <h2 className="text-xl font-semibold text-slate-900">Seleccionar Producto</h2>
@@ -183,7 +273,7 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
                   key={producto.id}
                   onClick={() => handleSelectProducto(producto)}
                   className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                    selectedProducto?.id === producto.id
+                    selectedProductos[producto.id]
                       ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
                       : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                   } ${producto.stock === 0 ? "opacity-50" : ""}`}
@@ -201,7 +291,7 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
                         </span>
                       )}
                     </div>
-                    {selectedProducto?.id === producto.id && <Check className="text-blue-600" size={20} />}
+                    {selectedProductos[producto.id] && <Check className="text-blue-600" size={20} />}
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -232,33 +322,44 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
         </div>
 
         {/* Footer */}
-        {selectedProducto && (
+        {Object.keys(selectedProductos).length > 0 && (
           <div className="p-6 border-t border-slate-200">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-medium text-slate-900">{selectedProducto.nombre}</h3>
-                <p className="text-sm text-slate-600">RD${selectedProducto.precio.toFixed(2)} c/u</p>
-              </div>
-              <div className="flex items-center space-x-3">
-                <label className="text-sm font-medium text-slate-700">Cantidad:</label>
-                <input
-                  type="number"
-                  min="1"
-                  max={selectedProducto.stock}
-                  value={cantidad}
-                  onChange={(e) => handleCantidadChange(Number.parseInt(e.target.value) || 1)}
-                  className="w-20 px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-                  disabled={selectedProducto.stock === 0}
-                />
-                <span className="text-sm text-slate-600">de {selectedProducto.stock}</span>
+            {/* Productos seleccionados */}
+            <div className="mb-4 max-h-32 overflow-y-auto">
+              <h4 className="font-medium text-slate-900 mb-2">Productos seleccionados:</h4>
+              <div className="space-y-2">
+                {Object.values(selectedProductos).map(({ producto, cantidad }) => (
+                  <div key={producto.id} className="grid grid-cols-12 gap-2 items-center text-sm">
+                    {/* Nombre del producto */}
+                    <div className="col-span-6">
+                      <span className="text-slate-700 truncate block">{producto.nombre}</span>
+                    </div>
+
+                    {/* Input de cantidad */}
+                    <div className="col-span-2">
+                      <input
+                        type="number"
+                        min="1"
+                        max={producto.stock}
+                        value={cantidad}
+                        onChange={(e) => handleCantidadChange(producto.id, Number.parseInt(e.target.value) || 1)}
+                        className="w-full px-2 py-1 border border-slate-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+
+                    {/* Precio unitario y total */}
+                    <div className="col-span-4 text-right">
+                      <span className="text-slate-600">× RD${producto.precio.toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-lg font-semibold text-slate-900">
-                  Total: RD${(selectedProducto.precio * cantidad).toFixed(2)}
-                </p>
+                <p className="text-lg font-semibold text-slate-900">Total: RD${calcularTotal().toFixed(2)}</p>
               </div>
               <div className="flex space-x-3">
                 <button
@@ -269,10 +370,25 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
                 </button>
                 <button
                   onClick={handleConfirmarSeleccion}
-                  className="btn-primary"
-                  disabled={!selectedProducto || selectedProducto.stock === 0 || cantidad > selectedProducto.stock}
+                  className={`flex items-center justify-center w-12 h-10 md:w-auto md:h-auto md:px-6 md:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                    isCartAnimating ? "animate-pulse scale-110 bg-green-600" : ""
+                  } shadow-lg hover:shadow-xl`}
+                  disabled={Object.keys(selectedProductos).length === 0}
                 >
-                  Agregar Producto
+                  <ShoppingCart
+                    size={16}
+                    className={`transition-all duration-300 ${isCartAnimating ? "animate-bounce" : ""}`}
+                  />
+                  <span className="hidden md:inline md:ml-2 font-medium">
+                    {isCartAnimating ? "Agregando..." : "Agregar Productos"}
+                  </span>
+
+                  {/* Contador de productos en el botón del carrito */}
+                  {Object.keys(selectedProductos).length > 0 && !isCartAnimating && (
+                    <span className="hidden md:inline ml-2 bg-blue-800 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      {Object.keys(selectedProductos).length}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
