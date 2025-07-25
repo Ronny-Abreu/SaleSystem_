@@ -110,7 +110,7 @@ export default function DetalleCliente() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title={cliente.nombre} subtitle={`Cliente ${cliente.codigo}`} />
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-6xl mx-auto">
             {/* Mensaje de éxito */}
             {showSuccess && (
@@ -119,43 +119,50 @@ export default function DetalleCliente() {
               </div>
             )}
 
-            {/* Header con botones */}
+            {/* Header con botones responsive */}
             <div className="flex items-center justify-between mb-6">
-              <Link
-                href="/clientes"
-                className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                <ArrowLeft size={20} />
-                <span>Volver a clientes</span>
-              </Link>
+              <div className="flex items-center space-x-2 md:space-x-3">
+                <Link
+                  href="/clientes"
+                  className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
+                >
+                  <ArrowLeft size={20} />
+                  <span className="hidden md:inline">Volver a clientes</span>
+                </Link>
 
-              <div className="flex space-x-3">
                 <Link
                   href={`/clientes/${clienteId}/editar`}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                  className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                 >
                   <Edit size={16} />
-                  <span>Editar</span>
-                </Link>
-                <Link href={`/facturas/nueva?cliente=${clienteId}`} className="btn-primary flex items-center space-x-2">
-                  <FileText size={16} />
-                  <span>Nueva Factura</span>
+                  <span className="hidden md:inline">Editar</span>
                 </Link>
               </div>
+
+              <Link
+                href={`/facturas/nueva?cliente=${clienteId}`}
+                className="btn-primary flex items-center space-x-2 px-3 py-2 text-sm"
+              >
+                <FileText size={16} />
+                <span>Nueva Factura</span>
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Información del Cliente */}
               <div className="lg:col-span-1">
                 <div className="card">
-                  <div className="flex items-center space-x-3 mb-6">
-                    <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <Phone className="text-blue-600" size={24} />
+                  <div className="mb-6">
+                    {/* Header responsive */}
+                    <div className="flex flex-col md:flex-row md:items-center md:space-x-3">
+                      <div className="flex items-center space-x-3 mb-2 md:mb-0">
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                          <Phone className="text-blue-600" size={24} />
+                        </div>
+                        <h2 className="text-xl font-semibold text-slate-900">Información del Cliente</h2>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-slate-900">Información del Cliente</h2>
-                      <p className="text-slate-600">Datos de contacto y registro</p>
-                    </div>
+                    <p className="text-slate-600 mt-2 md:mt-0 md:ml-15">Datos de contacto y registro</p>
                   </div>
 
                   <div className="space-y-4">
@@ -253,16 +260,20 @@ export default function DetalleCliente() {
               {/* Facturas del Cliente */}
               <div className="lg:col-span-2">
                 <div className="card">
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="mb-6">
                     <div>
                       <h2 className="text-xl font-semibold text-slate-900">Historial de Facturas</h2>
                       <p className="text-slate-600">Todas las facturas asociadas a este cliente</p>
+
+                      {/* Indicador de deuda */}
+                      {totalDeuda > 0 && (
+                        <div className="mt-3 md:mt-2">
+                          <div className="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+                            Tiene deuda pendiente
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    {totalDeuda > 0 && (
-                      <div className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
-                        Tiene deuda pendiente
-                      </div>
-                    )}
                   </div>
 
                   {loadingFacturas ? (
@@ -275,24 +286,34 @@ export default function DetalleCliente() {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-slate-200">
-                            <th className="text-left py-3 px-4 font-semibold text-slate-700">Número</th>
-                            <th className="text-left py-3 px-4 font-semibold text-slate-700">Fecha</th>
-                            <th className="text-right py-3 px-4 font-semibold text-slate-700">Total</th>
-                            <th className="text-center py-3 px-4 font-semibold text-slate-700">Estado</th>
-                            <th className="text-center py-3 px-4 font-semibold text-slate-700">Acciones</th>
+                            <th className="text-left py-3 px-2 md:px-4 font-semibold text-slate-700 text-sm">Número</th>
+                            <th className="text-left py-3 px-2 md:px-4 font-semibold text-slate-700 text-sm">Fecha</th>
+                            <th className="text-right py-3 px-2 md:px-4 font-semibold text-slate-700 text-sm">Total</th>
+                            <th className="text-center py-3 px-2 md:px-4 font-semibold text-slate-700 text-sm">
+                              Estado
+                            </th>
+                            <th className="text-center py-3 px-2 md:px-4 font-semibold text-slate-700 text-sm">
+                              Acciones
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           {facturas.map((factura) => (
                             <tr key={factura.id} className="border-b border-slate-100 hover:bg-slate-50">
-                              <td className="py-3 px-4 font-medium text-slate-900">{factura.numero_factura}</td>
-                              <td className="py-3 px-4 text-slate-600">
+                              <td
+                                className={`py-3 px-2 md:px-4 font-medium text-sm ${
+                                  factura.estado === "pendiente" ? "text-red-600" : "text-slate-900"
+                                }`}
+                              >
+                                {factura.numero_factura}
+                              </td>
+                              <td className="py-3 px-2 md:px-4 text-slate-600 text-sm">
                                 {new Date(factura.fecha).toLocaleDateString("es-DO")}
                               </td>
-                              <td className="py-3 px-4 text-right font-semibold text-slate-900">
+                              <td className="py-3 px-2 md:px-4 text-right font-semibold text-slate-900 text-sm">
                                 RD${factura.total.toLocaleString()}
                               </td>
-                              <td className="py-3 px-4 text-center">
+                              <td className="py-3 px-2 md:px-4 text-center">
                                 <span
                                   className={`px-2 py-1 rounded-full text-xs font-medium ${
                                     factura.estado === "pagada"
@@ -305,7 +326,7 @@ export default function DetalleCliente() {
                                   {factura.estado}
                                 </span>
                               </td>
-                              <td className="py-3 px-4 text-center">
+                              <td className="py-3 px-2 md:px-4 text-center">
                                 <Link
                                   href={`/facturas/${factura.id}`}
                                   className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"

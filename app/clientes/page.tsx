@@ -72,25 +72,27 @@ export default function ClientesPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title="Clientes" subtitle="Gestión de clientes registrados" />
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 relative">
           <div className="max-w-6xl mx-auto">
-            {/* Header con botones */}
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">Lista de Clientes</h1>
-                <p className="text-slate-600">
-                  Todos los clientes registrados en el sistema
-                  {!loadingFacturas && clientesConDeuda.size > 0 && (
-                    <span className="ml-2 text-red-600">
-                      • {clientesConDeuda.size} cliente{clientesConDeuda.size !== 1 ? "s" : ""} con deuda pendiente
-                    </span>
-                  )}
-                </p>
+            {/* Header responsive */}
+            <div className="mb-6">
+              <div className="flex flex-col space-y-2">
+                <h1 className="text-xl md:text-2xl font-bold text-slate-900">Lista de Clientes</h1>
+                <p className="text-sm md:text-base text-slate-600">Todos los clientes registrados en el sistema</p>
+                {!loadingFacturas && clientesConDeuda.size > 0 && (
+                  <p className="text-sm text-red-600">
+                    • {clientesConDeuda.size} cliente{clientesConDeuda.size !== 1 ? "s" : ""} con deuda pendiente
+                  </p>
+                )}
               </div>
-              <Link href="/clientes/nuevo" className="btn-primary flex items-center space-x-2">
-                <Plus size={16} />
-                <span>Nuevo Cliente</span>
-              </Link>
+
+              {/* Botón desktop */}
+              <div className="hidden md:block absolute top-4 right-6">
+                <Link href="/clientes/nuevo" className="btn-primary flex items-center space-x-2">
+                  <Plus size={16} />
+                  <span>Nuevo Cliente</span>
+                </Link>
+              </div>
             </div>
 
             {/* Lista de clientes */}
@@ -132,7 +134,7 @@ export default function ClientesPage() {
                           <div className="flex-1">
                             <div className="flex items-center space-x-2">
                               <h3
-                                className={`font-semibold group-hover:text-blue-600 transition-colors ${
+                                className={`font-semibold group-hover:text-blue-600 transition-colors text-sm md:text-base ${
                                   tieneDeuda ? "text-slate-900" : "text-slate-900"
                                 }`}
                               >
@@ -140,14 +142,11 @@ export default function ClientesPage() {
                               </h3>
                               {tieneDeuda && (
                                 <span title="Cliente con deuda pendiente">
-                                <AlertTriangle
-                                  size={16}
-                                  className="text-red-500 flex-shrink-0"
-                                />
-                              </span>
+                                  <AlertTriangle size={16} className="text-red-500 flex-shrink-0" />
+                                </span>
                               )}
                             </div>
-                            <p className="text-sm text-slate-600">Código: {cliente.codigo}</p>
+                            <p className="text-xs md:text-sm text-slate-600">Código: {cliente.codigo}</p>
                             {tieneDeuda && (
                               <p className="text-xs text-red-600 font-medium mt-1">Tiene facturas pendientes</p>
                             )}
@@ -187,7 +186,7 @@ export default function ClientesPage() {
                           </div>
                         </div>
 
-                        <div className="space-y-2 text-sm text-slate-600">
+                        <div className="space-y-2 text-xs md:text-sm text-slate-600">
                           {cliente.telefono && (
                             <div className="flex items-center space-x-2">
                               <Phone size={14} />
@@ -197,7 +196,7 @@ export default function ClientesPage() {
                           {cliente.email && (
                             <div className="flex items-center space-x-2">
                               <Mail size={14} />
-                              <span>{cliente.email}</span>
+                              <span className="truncate">{cliente.email}</span>
                             </div>
                           )}
                         </div>
@@ -224,6 +223,17 @@ export default function ClientesPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Botón flotante para móvil */}
+          <div className="md:hidden fixed bottom-6 right-6 z-50">
+            <Link
+              href="/clientes/nuevo"
+              className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+              title="Nuevo Cliente"
+            >
+              <Plus size={24} />
+            </Link>
           </div>
         </main>
       </div>
