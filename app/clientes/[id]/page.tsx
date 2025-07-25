@@ -328,7 +328,7 @@ export default function DetalleCliente() {
                               </td>
                               <td className="py-3 px-2 md:px-4 text-center">
                                 <Link
-                                  href={`/facturas/${factura.id}`}
+                                  href={`/facturas/${factura.id}?fromClient=${clienteId}`} // Pasar fromClient
                                   className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"
                                 >
                                   <Eye size={16} />

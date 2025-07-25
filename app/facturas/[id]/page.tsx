@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation" // Importar useSearchParams
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { ArrowLeft, Printer, Check, X, Clock, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Printer, Check, X, Clock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { facturasApi } from "@/lib/api"
 import type { Factura } from "@/lib/types"
@@ -14,6 +14,9 @@ type EstadoFactura = "pendiente" | "pagada" | "anulada"
 export default function FacturaDetalle() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams() // Usar useSearchParams
+  const fromClient = searchParams.get("fromClient") // Obtener el parámetro fromClient
+
   const [factura, setFactura] = useState<Factura | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,6 +62,9 @@ export default function FacturaDetalle() {
     fetchFactura()
   }, [params.id])
 
+  // Determinar la URL de regreso
+  const backUrl = fromClient ? `/clientes/${fromClient}` : "/facturas"
+
   if (loading) {
     return (
       <div className="flex h-screen bg-slate-50">
@@ -82,8 +88,8 @@ export default function FacturaDetalle() {
           <main className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <p className="text-red-600 mb-4">{error || "Factura no encontrada"}</p>
-              <Link href="/facturas" className="btn-primary">
-                Volver a Facturas
+              <Link href={backUrl} className="btn-primary">
+                Volver
               </Link>
             </div>
           </main>
@@ -130,11 +136,11 @@ export default function FacturaDetalle() {
             {/* Header con botones */}
             <div className="flex items-center justify-between mb-6">
               <Link
-                href="/facturas"
+                href={backUrl} // Usar la URL dinámica
                 className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft size={20} />
-                <span className="hidden sm:inline">Volver a facturas</span>
+                <span className="hidden sm:inline">{fromClient ? "Volver al Cliente" : "Volver a facturas"}</span>
               </Link>
 
               <div className="flex space-x-2 md:space-x-3">
@@ -156,7 +162,7 @@ export default function FacturaDetalle() {
               <div className="mb-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                   <h2 className="text-xl font-bold text-slate-900 mb-2 md:mb-0">Información General</h2>
-                  
+
                   {/* Estado actual con flecha indicadora */}
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-slate-600 md:hidden">Estado actual</span>
@@ -170,7 +176,7 @@ export default function FacturaDetalle() {
                   </div>
                 </div>
 
-                  {/* Botones para cambiar estado */}
+                {/* Botones para cambiar estado - Debajo del título en móvil */}
                 <div className="flex flex-wrap gap-2 mb-4">
                   {factura.estado !== "pagada" && (
                     <button

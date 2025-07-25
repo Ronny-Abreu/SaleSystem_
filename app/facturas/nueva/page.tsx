@@ -1,16 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Plus, Minus, Printer, Save, ArrowLeft, Calculator, Package, Search, Info, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useProductos } from "@/hooks/useProductos"
 import { useFacturas } from "@/hooks/useFacturas"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation" // Importar useSearchParams
 import { ClienteSearchModal } from "@/components/modals/cliente-search-modal"
-import type { Cliente } from "@/lib/types"
 import { ProductoSearchModal } from "@/components/modals/producto-search-modal"
+import type { Cliente, Producto } from "@/lib/types" // Importar Producto
 
 interface FacturaItem {
   id: string
@@ -23,7 +23,8 @@ interface FacturaItem {
 
 export default function NuevaFactura() {
   const router = useRouter()
-  const { productos } = useProductos(true) // Solo productos activos
+  const searchParams = useSearchParams() // Usar useSearchParams
+  const { productos, loading: loadingProductos } = useProductos(true) // Solo productos activos
   const { crearFactura } = useFacturas()
 
   const [cliente, setCliente] = useState<Cliente | null>(null)
@@ -36,6 +37,20 @@ export default function NuevaFactura() {
   const [showProductoModal, setShowProductoModal] = useState(false)
   const [estadoFactura, setEstadoFactura] = useState<"pagada" | "pendiente">("pagada")
 
+  // Efecto para precargar producto si viene en la URL
+  useEffect(() => {
+    const productoId = searchParams.get("productoId")
+    if (productoId && productos.length > 0) {
+      const productoParaPrecargar = productos.find((p) => p.id === Number(productoId))
+      if (productoParaPrecargar) {
+        // Solo agregar si no está ya en la lista
+        if (!items.some((item) => item.producto_id === productoParaPrecargar.id)) {
+          handleSelectProducto(productoParaPrecargar, 1) // Cantidad por defecto 1
+        }
+      }
+    }
+  }, [searchParams, productos]) // Dependencias: searchParams y productos
+
   const handleSelectCliente = (clienteSeleccionado: Cliente) => {
     setCliente(clienteSeleccionado)
   }
@@ -44,8 +59,7 @@ export default function NuevaFactura() {
     setShowProductoModal(true)
   }
 
-  // Agrega múltiples productos
-  const handleSelectProducto = (producto: any, cantidad: number) => {
+  const handleSelectProducto = (producto: Producto, cantidad: number) => {
     const nuevoItem: FacturaItem = {
       id: `${producto.id}-${Date.now()}-${Math.random()}`, // ID único para permitir múltiples del mismo producto
       producto_id: producto.id,
@@ -55,7 +69,6 @@ export default function NuevaFactura() {
       total: cantidad * producto.precio,
     }
 
-    // Aquí usé el spread operator para agregar al array existente
     setItems((prevItems) => [...prevItems, nuevoItem])
   }
 
@@ -85,6 +98,7 @@ export default function NuevaFactura() {
       setLoading(true)
       setError(null)
 
+      // Validaciones
       if (!cliente) {
         throw new Error("Debe seleccionar un cliente válido")
       }
@@ -147,7 +161,7 @@ export default function NuevaFactura() {
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 relative">
           <div className="max-w-4xl mx-auto">
-            {/* Header con botón hamburguesa */}
+            {/* Header con botones*/}
             <div className="flex items-center justify-between mb-6">
               <Link
                 href="/facturas"
@@ -223,14 +237,14 @@ export default function NuevaFactura() {
                   </div>
                 </div>
 
-                {/* Información del cliente */}
+                {/* Información del cliente mejorada */}
                 <div className="card">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                     <div className="flex items-center space-x-2 mb-4 md:mb-0">
                       <h3 className="text-lg font-semibold text-slate-900">Información del Cliente</h3>
                     </div>
 
-                    {/* Botones de info y buscar */}
+                    {/* Botones de info y buscar - en la misma fila en desktop */}
                     <div className="flex items-center space-x-2 md:order-last">
                       <div className="group relative">
                         <button className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
@@ -276,14 +290,14 @@ export default function NuevaFactura() {
                   </div>
                 </div>
 
-                {/* Artículos */}
+                {/* Artículos con botón mejorado */}
                 <div className="card">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-slate-900">Artículos ({items.length})</h3>
 
                     {/* Botón agregar artículo responsive */}
                     <div className="relative">
-                      {/* Botón móvil con tooltip permanente */}
+                      {/* Botón móvil - solo + con tooltip permanente */}
                       <button
                         onClick={agregarItem}
                         className="md:hidden w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-all duration-1000 animate-pulse hover:animate-none shadow-lg"
@@ -297,7 +311,7 @@ export default function NuevaFactura() {
                         <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
                       </div>
 
-                      {/* Botón desktop - texto completo con una animación de respiración(no sé el nombre exacto) */}
+                      {/* Botón desktop - texto completo con animación */}
                       <button
                         onClick={agregarItem}
                         className="hidden md:flex btn-primary items-center space-x-2 animate-pulse hover:animate-none"
@@ -515,7 +529,7 @@ export default function NuevaFactura() {
             )}
           </div>
 
-          {/* Botón guardar flotante para móvil */}
+          {/* Botón guardar flotante para móvil - POSICIÓN MEJORADA */}
           {!showPreview && (
             <div className="md:hidden fixed bottom-20 right-6 z-50">
               <button
@@ -531,7 +545,7 @@ export default function NuevaFactura() {
         </main>
       </div>
 
-      {/* Modal de búsqueda de clientes */}
+      {/* Modal de búsqueda de clientes mejorado */}
       <ClienteSearchModal
         isOpen={showClienteModal}
         onClose={() => setShowClienteModal(false)}
