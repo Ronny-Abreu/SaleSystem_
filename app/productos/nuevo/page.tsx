@@ -203,12 +203,19 @@ export default function NuevoProducto() {
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-6">
-                  <Link href="/productos" className="px-6 py-2 text-slate-600 hover:text-slate-800 transition-colors">
-                    Cancelar
+                  <Link
+                  href="/productos"
+                  className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors whitespace-nowrap text-sm md:text-base"
+                  >
+                  Cancelar
                   </Link>
-                  <button type="submit" disabled={loading} className="btn-primary flex items-center space-x-2">
-                    <Save size={16} />
-                    <span>{loading ? "Guardando..." : "Guardar Producto"}</span>
+                  <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary flex items-center space-x-2 whitespace-nowrap text-sm md:text-base px-4 py-2"
+                  >
+                  <Save size={16} />
+                  <span>{loading ? "Guardando..." : "Guardar"}</span>
                   </button>
                 </div>
               </form>

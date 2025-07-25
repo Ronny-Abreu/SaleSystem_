@@ -1,16 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { Plus, Minus, Printer, Save, ArrowLeft, Calculator, Package, Search, Info } from "lucide-react"
+import { Plus, Minus, Printer, Save, ArrowLeft, Calculator, Package, Search, Info, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useProductos } from "@/hooks/useProductos"
 import { useFacturas } from "@/hooks/useFacturas"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation" // Importar useSearchParams
 import { ClienteSearchModal } from "@/components/modals/cliente-search-modal"
-import type { Cliente } from "@/lib/types"
 import { ProductoSearchModal } from "@/components/modals/producto-search-modal"
+import type { Cliente, Producto } from "@/lib/types" // Importar Producto
 
 interface FacturaItem {
   id: string
@@ -23,7 +23,8 @@ interface FacturaItem {
 
 export default function NuevaFactura() {
   const router = useRouter()
-  const { productos } = useProductos(true) // Solo productos activos
+  const searchParams = useSearchParams() // Usar useSearchParams
+  const { productos, loading: loadingProductos } = useProductos(true) // Solo productos activos
   const { crearFactura } = useFacturas()
 
   const [cliente, setCliente] = useState<Cliente | null>(null)
@@ -36,6 +37,20 @@ export default function NuevaFactura() {
   const [showProductoModal, setShowProductoModal] = useState(false)
   const [estadoFactura, setEstadoFactura] = useState<"pagada" | "pendiente">("pagada")
 
+  // Efecto para precargar producto si viene en la URL
+  useEffect(() => {
+    const productoId = searchParams.get("productoId")
+    if (productoId && productos.length > 0) {
+      const productoParaPrecargar = productos.find((p) => p.id === Number(productoId))
+      if (productoParaPrecargar) {
+        // Solo agregar si no está ya en la lista
+        if (!items.some((item) => item.producto_id === productoParaPrecargar.id)) {
+          handleSelectProducto(productoParaPrecargar, 1) // Cantidad por defecto 1
+        }
+      }
+    }
+  }, [searchParams, productos]) // Dependencias: searchParams y productos
+
   const handleSelectCliente = (clienteSeleccionado: Cliente) => {
     setCliente(clienteSeleccionado)
   }
@@ -44,47 +59,25 @@ export default function NuevaFactura() {
     setShowProductoModal(true)
   }
 
-  const handleSelectProducto = (producto: any, cantidad: number) => {
+  const handleSelectProducto = (producto: Producto, cantidad: number) => {
     const nuevoItem: FacturaItem = {
-      id: Date.now().toString(),
+      id: `${producto.id}-${Date.now()}-${Math.random()}`, // ID único para permitir múltiples del mismo producto
       producto_id: producto.id,
       nombre: producto.nombre,
       cantidad: cantidad,
       precio: producto.precio,
       total: cantidad * producto.precio,
     }
-    setItems([...items, nuevoItem])
+
+    setItems((prevItems) => [...prevItems, nuevoItem])
   }
 
-  const actualizarItem = (id: string, campo: keyof FacturaItem, valor: any) => {
-    setItems(
-      items.map((item) => {
+  const actualizarCantidad = (id: string, nuevaCantidad: number) => {
+    setItems((prevItems) =>
+      prevItems.map((item) => {
         if (item.id === id) {
-          const itemActualizado = { ...item, [campo]: valor }
-
-          // Si se selecciona un producto, actualizar precio
-          if (campo === "producto_id") {
-            const producto = productos.find((p) => p.id === valor)
-            if (producto) {
-              itemActualizado.nombre = producto.nombre
-              itemActualizado.precio = producto.precio
-            }
-          }
-
-          // Validar stock cuando se cambia la cantidad
-          if (campo === "cantidad") {
-            const producto = productos.find((p) => p.id === item.producto_id)
-            if (producto && valor > producto.stock) {
-              setError(`Solo hay ${producto.stock} unidades disponibles de "${producto.nombre}"`)
-              itemActualizado.cantidad = producto.stock // Limitar a stock disponible
-            } else {
-              setError(null) // Limpiar error si la cantidad es válida
-            }
-          }
-
-          if (campo === "cantidad" || campo === "precio") {
-            itemActualizado.total = itemActualizado.cantidad * itemActualizado.precio
-          }
+          const itemActualizado = { ...item, cantidad: nuevaCantidad }
+          itemActualizado.total = itemActualizado.cantidad * itemActualizado.precio
           return itemActualizado
         }
         return item
@@ -93,11 +86,11 @@ export default function NuevaFactura() {
   }
 
   const eliminarItem = (id: string) => {
-    setItems(items.filter((item) => item.id !== id))
+    setItems((prevItems) => prevItems.filter((item) => item.id !== id))
   }
 
   const calcularSubtotal = () => {
-    return items.reduce((sum, item) => sum + item.total, 0)
+    return items.reduce((sum, item) => sum + item.cantidad * item.precio, 0)
   }
 
   const guardarFactura = async () => {
@@ -166,27 +159,33 @@ export default function NuevaFactura() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title="Nueva Factura" subtitle="Crear una nueva factura de venta" />
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 relative">
           <div className="max-w-4xl mx-auto">
-            {/* Header con botones */}
+            {/* Header con botones*/}
             <div className="flex items-center justify-between mb-6">
               <Link
                 href="/facturas"
                 className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft size={20} />
-                <span>Volver a facturas</span>
+                <span className="hidden md:inline">Volver a facturas</span>
               </Link>
 
-              <div className="flex space-x-3">
+              <div className="flex space-x-2 md:space-x-3">
                 <button
                   onClick={() => setShowPreview(!showPreview)}
-                  className="btn-secondary flex items-center space-x-2"
+                  className="btn-secondary flex items-center space-x-2 px-3 py-2 text-sm whitespace-nowrap"
                 >
                   <Calculator size={16} />
-                  <span>{showPreview ? "Editar" : "Vista previa"}</span>
+                  <span>Vista previa</span>
                 </button>
-                <button onClick={guardarFactura} disabled={loading} className="btn-primary flex items-center space-x-2">
+
+                {/* Botón guardar desktop */}
+                <button
+                  onClick={guardarFactura}
+                  disabled={loading}
+                  className="hidden md:flex btn-primary items-center space-x-2"
+                >
                   <Save size={16} />
                   <span>{loading ? "Guardando..." : "Guardar"}</span>
                 </button>
@@ -238,29 +237,35 @@ export default function NuevaFactura() {
                   </div>
                 </div>
 
-                {/* Información del cliente */}
+                {/* Información del cliente mejorada */}
                 <div className="card">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-slate-900">Información del Cliente</h3>
-                    <div className="flex items-center space-x-2">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                    <div className="flex items-center space-x-2 mb-4 md:mb-0">
+                      <h3 className="text-lg font-semibold text-slate-900">Información del Cliente</h3>
+                    </div>
+
+                    {/* Botones de info y buscar - en la misma fila en desktop */}
+                    <div className="flex items-center space-x-2 md:order-last">
                       <div className="group relative">
                         <button className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
                           <Info size={16} />
                         </button>
-                        <div className="absolute right-0 top-8 w-64 p-3 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <div className="absolute right-0 md:-right-4 top-8 w-64 p-3 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
                           Recuerda que debes tener el cliente registrado para solo tener que buscarlo en la lupa y se
                           autocomplete con su código y nombre correspondiente.
                         </div>
                       </div>
+
                       <button
                         onClick={() => setShowClienteModal(true)}
-                        className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                        className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors text-sm"
                       >
                         <Search size={16} />
                         <span>Buscar Cliente</span>
                       </button>
                     </div>
                   </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Código del Cliente</label>
@@ -285,95 +290,120 @@ export default function NuevaFactura() {
                   </div>
                 </div>
 
-                {/* Artículos */}
+                {/* Artículos con botón mejorado */}
                 <div className="card">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-slate-900">Artículos</h3>
-                    <button onClick={agregarItem} className="btn-primary flex items-center space-x-2">
-                      <Plus size={16} />
-                      <span>Agregar artículo</span>
-                    </button>
+                    <h3 className="text-lg font-semibold text-slate-900">Artículos ({items.length})</h3>
+
+                    {/* Botón agregar artículo responsive */}
+                    <div className="relative">
+                      {/* Botón móvil - solo + con tooltip permanente */}
+                      <button
+                        onClick={agregarItem}
+                        className="md:hidden w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-all duration-1000 animate-pulse hover:animate-none shadow-lg"
+                      >
+                        <Plus size={20} />
+                      </button>
+
+                      {/* Tooltip permanente para móvil */}
+                      <div className="md:hidden absolute -top-12 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-10">
+                        <span>Agregar artículo</span>
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
+                      </div>
+
+                      {/* Botón desktop - texto completo con animación */}
+                      <button
+                        onClick={agregarItem}
+                        className="hidden md:flex btn-primary items-center space-x-2 animate-pulse hover:animate-none"
+                      >
+                        <Plus size={16} />
+                        <span>Agregar artículo</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
-                    {items.map((item, index) => (
-                      <div key={item.id} className="p-4 border border-slate-200 rounded-lg bg-slate-50">
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                          <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Artículo</label>
-                            <select
-                              value={item.producto_id}
-                              onChange={(e) => {
-                                const productoId = Number.parseInt(e.target.value)
-                                actualizarItem(item.id, "producto_id", productoId)
-                              }}
-                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
-                            >
-                              <option value={0}>Seleccionar artículo</option>
-                              {productos.map((producto) => (
-                                <option key={producto.id} value={producto.id}>
-                                  {producto.nombre} - RD${producto.precio}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Cantidad</label>
+                    {items.map((item, index) => {
+                      const producto = productos.find((p) => p.id === item.producto_id)
+                      const excedeCantidad = producto && item.cantidad > producto.stock
+
+                      return (
+                        <div key={item.id} className="p-4 border border-slate-200 rounded-lg bg-slate-50">
+                          {/* Nombre del producto */}
+                          <div className="mb-3">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                              Artículo #{index + 1}
+                            </label>
                             <input
-                              type="number"
-                              min="1"
-                              max={(() => {
-                                const producto = productos.find((p) => p.id === item.producto_id)
-                                return producto ? producto.stock : undefined
-                              })()}
-                              value={item.cantidad}
-                              onChange={(e) =>
-                                actualizarItem(item.id, "cantidad", Number.parseInt(e.target.value) || 1)
-                              }
-                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
-                            />
-                            {item.producto_id > 0 &&
-                              (() => {
-                                const producto = productos.find((p) => p.id === item.producto_id)
-                                return producto && item.cantidad > producto.stock ? (
-                                  <p className="text-xs mt-1 text-red-600 font-medium">¡Cantidad excede el stock!</p>
-                                ) : null
-                              })()}
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">Precio Unit.</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.precio}
-                              onChange={(e) =>
-                                actualizarItem(item.id, "precio", Number.parseFloat(e.target.value) || 0)
-                              }
-                              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                              type="text"
+                              value={item.nombre}
+                              disabled
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-100 text-slate-800 font-medium"
                             />
                           </div>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 mb-2">Total</label>
-                              <p className="text-lg font-semibold text-slate-900">RD${item.total.toFixed(2)}</p>
+
+                          {/* Fila con cantidad, total y eliminar */}
+                          <div className="flex items-center space-x-4">
+                            {/* Cantidad */}
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <label className="block text-sm font-medium text-slate-700">Cantidad</label>
+                                {excedeCantidad && (
+                                  <div className="md:hidden group relative">
+                                    <button className="p-1 text-red-500 hover:text-red-600 transition-colors">
+                                      <AlertCircle size={12} />
+                                    </button>
+                                    <div className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 bg-red-600 text-white text-xs px-2 py-1 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10 whitespace-nowrap">
+                                      No hay esa cantidad disponible
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              <input
+                                type="number"
+                                min="1"
+                                max={producto?.stock}
+                                value={item.cantidad}
+                                onChange={(e) => actualizarCantidad(item.id, Number.parseInt(e.target.value) || 1)}
+                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 ${
+                                  excedeCantidad ? "border-red-500 bg-red-50 animate-shake" : "border-slate-300"
+                                }`}
+                              />
                             </div>
-                            <button
-                              onClick={() => eliminarItem(item.id)}
-                              className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <Minus size={16} />
-                            </button>
+
+                            {/* Total */}
+                            <div className="flex-1">
+                              <label className="block text-sm font-medium text-slate-700 mb-2">Total</label>
+                              <p className="text-lg font-semibold text-slate-900 py-2">
+                                RD${(item.cantidad * item.precio).toFixed(2)}
+                              </p>
+                            </div>
+
+                            {/* Botón eliminar */}
+                            <div className="flex-shrink-0">
+                              <label className="block text-sm font-medium text-slate-700 mb-2 opacity-0">
+                                Eliminar
+                              </label>
+                              <button
+                                onClick={() => eliminarItem(item.id)}
+                                className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Eliminar artículo"
+                              >
+                                <Minus size={16} />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
 
                     {items.length === 0 && (
                       <div className="text-center py-8 text-slate-500">
                         <Package size={48} className="mx-auto mb-4 text-slate-300" />
                         <p>No hay artículos agregados</p>
-                        <p className="text-sm">Haz clic en "Agregar artículo" para comenzar</p>
+                        <p className="text-sm md:hidden">Haz clic en el botón "+" para comenzar</p>
+                        <p className="text-sm hidden md:block">Haz clic en "Agregar artículo" para comenzar</p>
                       </div>
                     )}
                   </div>
@@ -395,6 +425,10 @@ export default function NuevaFactura() {
                   <div className="card">
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">Resumen</h3>
                     <div className="space-y-3">
+                      <div className="flex justify-between text-slate-600">
+                        <span>Artículos:</span>
+                        <span>{items.length}</span>
+                      </div>
                       <div className="flex justify-between text-slate-600">
                         <span>Subtotal:</span>
                         <span>RD${calcularSubtotal().toFixed(2)}</span>
@@ -451,7 +485,9 @@ export default function NuevaFactura() {
                             <td className="py-2 text-slate-900">{item.nombre}</td>
                             <td className="py-2 text-center text-slate-600">{item.cantidad}</td>
                             <td className="py-2 text-right text-slate-600">RD${item.precio.toFixed(2)}</td>
-                            <td className="py-2 text-right font-semibold text-slate-900">RD${item.total.toFixed(2)}</td>
+                            <td className="py-2 text-right font-semibold text-slate-900">
+                              RD${(item.cantidad * item.precio).toFixed(2)}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -492,10 +528,24 @@ export default function NuevaFactura() {
               </div>
             )}
           </div>
+
+          {/* Botón guardar flotante para móvil - POSICIÓN MEJORADA */}
+          {!showPreview && (
+            <div className="md:hidden fixed bottom-20 right-6 z-50">
+              <button
+                onClick={guardarFactura}
+                disabled={loading}
+                className="w-14 h-14 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+                title={loading ? "Guardando..." : "Guardar Factura"}
+              >
+                <Save size={24} />
+              </button>
+            </div>
+          )}
         </main>
       </div>
 
-      {/* Modal de búsqueda de clientes */}
+      {/* Modal de búsqueda de clientes mejorado */}
       <ClienteSearchModal
         isOpen={showClienteModal}
         onClose={() => setShowClienteModal(false)}

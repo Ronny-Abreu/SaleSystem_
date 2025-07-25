@@ -307,13 +307,20 @@ export default function EditarProducto() {
                   </label>
                 </div>
 
-                <div className="flex justify-end space-x-4">
-                  <Link href="/productos" className="btn-secondary">
-                    Cancelar
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-4 sm:gap-0 w-full">
+                  <Link
+                  href="/productos"
+                  className="btn-secondary w-full sm:w-auto flex justify-center items-center"
+                  >
+                  Cancelar
                   </Link>
-                  <button type="submit" disabled={saving} className="btn-primary flex items-center space-x-2">
-                    <Save size={16} />
-                    <span>{saving ? "Guardando..." : "Guardar Cambios"}</span>
+                  <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary flex items-center justify-center w-full sm:w-auto space-x-2"
+                  >
+                  <Save size={16} />
+                  <span className="whitespace-nowrap">{saving ? "Guardando..." : "Guardar Cambios"}</span>
                   </button>
                 </div>
               </form>
