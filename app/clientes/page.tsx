@@ -2,11 +2,11 @@
 
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { Users, Plus, Edit, Trash2, Phone, Mail, Eye, AlertTriangle } from "lucide-react"
+import { Users, Plus, Edit, Trash2, Phone, Mail, Eye, AlertTriangle, Search, Filter, X } from "lucide-react"
 import Link from "next/link"
 import { useClientes } from "@/hooks/useClientes"
 import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { facturasApi } from "@/lib/api"
 import type { Factura } from "@/lib/types"
 
@@ -17,6 +17,10 @@ export default function ClientesPage() {
   const [facturas, setFacturas] = useState<Factura[]>([])
   const [loadingFacturas, setLoadingFacturas] = useState(true)
   const [clientesConDeuda, setClientesConDeuda] = useState<Set<number>>(new Set())
+  
+  // Estados para búsqueda y filtros
+  const [searchTerm, setSearchTerm] = useState("")
+  const [showDebtFilter, setShowDebtFilter] = useState(false)
 
   // Cargar facturas para calcular deudas
   useEffect(() => {
@@ -48,6 +52,27 @@ export default function ClientesPage() {
     }
   }, [clientes])
 
+  // Filtrar clientes basado en búsqueda y filtros
+  const clientesFiltrados = useMemo(() => {
+    let resultado = clientes
+
+    // Filtrar por término de búsqueda
+    if (searchTerm.trim()) {
+      const termino = searchTerm.toLowerCase().trim()
+      resultado = resultado.filter(cliente => 
+        cliente.nombre.toLowerCase().includes(termino) ||
+        cliente.codigo.toLowerCase().includes(termino)
+      )
+    }
+
+    // Filtrar por clientes con deuda
+    if (showDebtFilter) {
+      resultado = resultado.filter(cliente => clientesConDeuda.has(cliente.id))
+    }
+
+    return resultado
+  }, [clientes, searchTerm, showDebtFilter, clientesConDeuda])
+
   const handleDelete = async (id: number, nombre: string) => {
     if (confirm(`¿Está seguro de que desea eliminar al cliente "${nombre}"?`)) {
       try {
@@ -63,6 +88,11 @@ export default function ClientesPage() {
 
   const handleCardClick = (clienteId: number) => {
     router.push(`/clientes/${clienteId}`)
+  }
+
+  const limpiarFiltros = () => {
+    setSearchTerm("")
+    setShowDebtFilter(false)
   }
 
   return (
@@ -86,6 +116,67 @@ export default function ClientesPage() {
                 )}
               </div>
 
+              {/* Controles de búsqueda y filtros */}
+              <div className="mt-4 space-y-3">
+                {/* Barra de búsqueda */}
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-slate-900" />
+                    </div>
+                    <input
+                    type="text"
+                    placeholder="Buscar por nombre o código de cliente..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-500 focus:outline-none focus:placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm text-black"
+                    />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      <X className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filtros */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setShowDebtFilter(!showDebtFilter)}
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      showDebtFilter
+                        ? "bg-red-100 text-red-700 border border-red-200"
+                        : "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    <AlertTriangle size={14} />
+                    <span>Solo con deudas</span>
+                    {showDebtFilter && clientesConDeuda.size > 0 && (
+                      <span className="ml-1 bg-red-200 text-red-800 px-2 py-0.5 rounded-full text-xs">
+                        {clientesFiltrados.length}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Indicador de filtros activos y botón limpiar */}
+                  {(searchTerm || showDebtFilter) && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-slate-500">
+                        {clientesFiltrados.length} de {clientes.length} clientes
+                      </span>
+                      <button
+                        onClick={limpiarFiltros}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded"
+                      >
+                        <X size={12} />
+                        <span>Limpiar</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Botón desktop */}
               <div className="hidden md:block absolute top-4 right-6">
                 <Link href="/clientes/nuevo" className="btn-primary flex items-center space-x-2">
@@ -106,9 +197,9 @@ export default function ClientesPage() {
                 <div className="text-center py-8 text-red-600">
                   <p>Error: {error}</p>
                 </div>
-              ) : clientes.length > 0 ? (
+              ) : clientesFiltrados.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {clientes.map((cliente) => {
+                  {clientesFiltrados.map((cliente) => {
                     const tieneDeuda = clientesConDeuda.has(cliente.id)
 
                     return (
@@ -215,7 +306,21 @@ export default function ClientesPage() {
                     )
                   })}
                 </div>
+              ) : clientes.length > 0 ? (
+                // Mostrar mensaje cuando hay clientes pero ninguno coincide con los filtros
+                <div className="text-center py-8 text-slate-500">
+                  <Filter size={48} className="mx-auto mb-4 text-slate-300" />
+                  <p>No se encontraron clientes con los filtros aplicados</p>
+                  <p className="text-sm">Intenta ajustar tu búsqueda o limpiar los filtros</p>
+                  <button
+                    onClick={limpiarFiltros}
+                    className="mt-3 text-blue-600 hover:text-blue-700 text-sm underline"
+                  >
+                    Limpiar filtros
+                  </button>
+                </div>
               ) : (
+                // Mensaje cuando no hay clientes en absoluto
                 <div className="text-center py-8 text-slate-500">
                   <Users size={48} className="mx-auto mb-4 text-slate-300" />
                   <p>No hay clientes registrados</p>
