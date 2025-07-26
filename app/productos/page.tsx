@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { Package, Plus, Edit, Trash2, ShoppingCart, Filter, RefreshCw } from "lucide-react"
+import { Package, Plus, Edit, Trash2, ShoppingCart, Filter, RefreshCw, X } from "lucide-react"
 import Link from "next/link"
 import { useProductos } from "@/hooks/useProductos"
 import { useRouter } from "next/navigation"
@@ -17,10 +17,31 @@ const CATEGORIAS = [
   { id: 5, nombre: "Otros", color: "#6B7280" },
 ]
 
+interface CarritoItem {
+  producto_id: number
+  nombre: string
+  precio: number
+  cantidad: number
+}
+
 export default function ProductosPage() {
   const router = useRouter()
   const { productos, loading, error, refetch, eliminarProducto } = useProductos()
   const [selectedCategoria, setSelectedCategoria] = useState<number | null>(null)
+  const [carrito, setCarrito] = useState<CarritoItem[]>([])
+
+  // Cargar carrito desde localStorage al montar el componente
+  useEffect(() => {
+    const carritoGuardado = localStorage.getItem('carrito-productos')
+    if (carritoGuardado) {
+      setCarrito(JSON.parse(carritoGuardado))
+    }
+  }, [])
+
+  // Guardar carrito en localStorage cada vez que cambie
+  useEffect(() => {
+    localStorage.setItem('carrito-productos', JSON.stringify(carrito))
+  }, [carrito])
 
   // Filtrar productos por categoría
   const productosFiltrados = selectedCategoria
@@ -36,12 +57,63 @@ export default function ProductosPage() {
   // Productos sin categoría
   const productosSinCategoria = productos.filter((p) => !p.categoria_id)
 
-  const handleRealizarPedido = (producto: any) => {
+  const agregarAlCarrito = (producto: any) => {
     if (!producto.activo) {
-      alert("Este producto está inactivo y no se puede usar en facturas")
+      alert("Este producto está inactivo y no se puede agregar al carrito")
       return
     }
-    router.push(`/facturas/nueva?producto=${producto.id}`)
+
+    setCarrito(prevCarrito => {
+      const itemExistente = prevCarrito.find(item => item.producto_id === producto.id)
+      
+      if (itemExistente) {
+        // Si ya existe, incrementar cantidad
+        return prevCarrito.map(item =>
+          item.producto_id === producto.id
+            ? { ...item, cantidad: item.cantidad + 1 }
+            : item
+        )
+      } else {
+        // Si no existe, agregar nuevo item
+        return [...prevCarrito, {
+          producto_id: producto.id,
+          nombre: producto.nombre,
+          precio: producto.precio,
+          cantidad: 1
+        }]
+      }
+    })
+  }
+
+  const eliminarDelCarrito = (producto_id: number) => {
+    setCarrito(prevCarrito => {
+      const itemExistente = prevCarrito.find(item => item.producto_id === producto_id)
+      
+      if (itemExistente && itemExistente.cantidad > 1) {
+        // Si tiene más de 1, decrementar cantidad
+        return prevCarrito.map(item =>
+          item.producto_id === producto_id
+            ? { ...item, cantidad: item.cantidad - 1 }
+            : item
+        )
+      } else {
+        // Si tiene 1 o menos, eliminar del carrito
+        return prevCarrito.filter(item => item.producto_id !== producto_id)
+      }
+    })
+  }
+
+  const limpiarCarrito = () => {
+    setCarrito([])
+  }
+
+  const irAFactura = () => {
+    // Crear URL con los productos del carrito
+    const carritoParams = carrito.map((item, index) => 
+      `producto${index + 1}=${item.producto_id}&cantidad${index + 1}=${item.cantidad}`
+    ).join('&')
+    
+    router.push(`/facturas/nueva?desde=productos&${carritoParams}&totalItems=${carrito.length}`)
   }
 
   const handleEditarProducto = (producto: any) => {
@@ -60,6 +132,9 @@ export default function ProductosPage() {
       alert("Error al desactivar el producto: " + (error instanceof Error ? error.message : "Error desconocido"))
     }
   }
+
+  const totalItemsCarrito = carrito.reduce((total, item) => total + item.cantidad, 0)
+  const totalPrecioCarrito = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0)
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -175,7 +250,9 @@ export default function ProductosPage() {
                     <ProductoCard
                       key={producto.id}
                       producto={producto}
-                      onRealizarPedido={handleRealizarPedido}
+                      carrito={carrito}
+                      onAgregarAlCarrito={agregarAlCarrito}
+                      onEliminarDelCarrito={eliminarDelCarrito}
                       onEditar={handleEditarProducto}
                       onEliminar={handleEliminarProducto}
                     />
@@ -193,7 +270,9 @@ export default function ProductosPage() {
                     <ProductoCard
                       key={producto.id}
                       producto={producto}
-                      onRealizarPedido={handleRealizarPedido}
+                      carrito={carrito}
+                      onAgregarAlCarrito={agregarAlCarrito}
+                      onEliminarDelCarrito={eliminarDelCarrito}
                       onEditar={handleEditarProducto}
                       onEliminar={handleEliminarProducto}
                     />
@@ -216,7 +295,9 @@ export default function ProductosPage() {
                         <ProductoCard
                           key={producto.id}
                           producto={producto}
-                          onRealizarPedido={handleRealizarPedido}
+                          carrito={carrito}
+                          onAgregarAlCarrito={agregarAlCarrito}
+                          onEliminarDelCarrito={eliminarDelCarrito}
                           onEditar={handleEditarProducto}
                           onEliminar={handleEliminarProducto}
                         />
@@ -239,7 +320,9 @@ export default function ProductosPage() {
                         <ProductoCard
                           key={producto.id}
                           producto={producto}
-                          onRealizarPedido={handleRealizarPedido}
+                          carrito={carrito}
+                          onAgregarAlCarrito={agregarAlCarrito}
+                          onEliminarDelCarrito={eliminarDelCarrito}
                           onEditar={handleEditarProducto}
                           onEliminar={handleEliminarProducto}
                         />
@@ -252,6 +335,64 @@ export default function ProductosPage() {
           </div>
         </main>
       </div>
+
+      {/* Carrito flotante */}
+      {carrito.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-4 max-w-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-slate-900 flex items-center space-x-2">
+                <ShoppingCart size={18} />
+                <span>Carrito ({totalItemsCarrito})</span>
+              </h3>
+              <button
+                onClick={limpiarCarrito}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+                title="Limpiar carrito"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-40 overflow-y-auto mb-3">
+              {carrito.map((item) => (
+                <div key={item.producto_id} className="flex items-center justify-between text-sm">
+                  <span className="truncate flex-1 mr-2">{item.nombre}</span>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => eliminarDelCarrito(item.producto_id)}
+                      className="w-6 h-6 bg-red-100 text-red-600 rounded-full flex items-center justify-center hover:bg-red-200"
+                    >
+                      <span className="text-xs">-</span>
+                    </button>
+                    <span className="w-8 text-center">{item.cantidad}</span>
+                    <button
+                      onClick={() => agregarAlCarrito({ id: item.producto_id, nombre: item.nombre, precio: item.precio, activo: true })}
+                      className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center hover:bg-green-200"
+                    >
+                      <span className="text-xs">+</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-slate-200 pt-3">
+              <div className="flex justify-between items-center mb-3">
+                <span className="font-semibold text-slate-900">Total:</span>
+                <span className="font-bold text-green-600">RD${totalPrecioCarrito.toFixed(2)}</span>
+              </div>
+              <button
+                onClick={irAFactura}
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+              >
+                <ShoppingCart size={16} />
+                <span>Crear Factura</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -259,17 +400,32 @@ export default function ProductosPage() {
 // Componente para la tarjeta de producto
 function ProductoCard({
   producto,
-  onRealizarPedido,
+  carrito,
+  onAgregarAlCarrito,
+  onEliminarDelCarrito,
   onEditar,
   onEliminar,
 }: {
   producto: any
-  onRealizarPedido: (producto: any) => void
+  carrito: CarritoItem[]
+  onAgregarAlCarrito: (producto: any) => void
+  onEliminarDelCarrito: (producto_id: number) => void
   onEditar: (producto: any) => void
   onEliminar: (producto: any) => void
 }) {
+  const itemEnCarrito = carrito.find(item => item.producto_id === producto.id)
+  const cantidadEnCarrito = itemEnCarrito?.cantidad || 0
+
   return (
-    <div className="p-4 border border-slate-200 rounded-lg hover:shadow-md transition-shadow">
+    <div className="p-4 border border-slate-200 rounded-lg hover:shadow-md transition-shadow relative">
+      {cantidadEnCarrito > 0 && (
+        <div className="absolute -top-2 -right-2 z-10">
+          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+            <span className="text-white text-xs font-bold">{cantidadEnCarrito}</span>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h3 className="font-semibold text-slate-900">{producto.nombre}</h3>
@@ -295,33 +451,62 @@ function ProductoCard({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-lg font-semibold text-slate-900">RD${producto.precio.toFixed(2)}</span>
-          <div className="flex items-center space-x-2">
-            <span className={`text-sm ${producto.stock > 0 ? "text-green-600" : "text-red-600"}`}>
-              Stock: {producto.stock}
+            <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between w-full gap-1">
+            <span className="text-base sm:text-lg font-semibold text-slate-900 xs:mr-3 whitespace-nowrap">
+              RD${producto.precio.toFixed(2)}
             </span>
-            <span
+            <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
+              <span className={`text-sm ${producto.stock > 0 ? "text-green-600" : "text-red-600"} whitespace-nowrap`}>
+              Stock: {producto.stock}
+              </span>
+              <span
               className={`px-2 py-1 rounded-full text-xs font-medium ${
                 producto.activo ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
               }`}
-            >
+              >
               {producto.activo ? "Activo" : "Inactivo"}
-            </span>
+              </span>
+            </div>
+            </div>
           </div>
-        </div>
 
-        <button
-          onClick={() => onRealizarPedido(producto)}
-          disabled={producto.stock === 0 || !producto.activo}
-          className={`w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-            producto.stock > 0 && producto.activo
-              ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
-              : "bg-slate-100 text-slate-400 cursor-not-allowed"
-          }`}
-        >
-          <ShoppingCart size={14} />
-          <span>{!producto.activo ? "Producto Inactivo" : producto.stock > 0 ? "Realizar Pedido" : "Sin Stock"}</span>
-        </button>
+        {cantidadEnCarrito > 0 ? (
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => onEliminarDelCarrito(producto.id)}
+              className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2"
+            >
+              <span>-</span>
+            </button>
+            <span className="px-4 py-2 bg-slate-100 rounded-lg text-sm font-semibold text-slate-700">
+              {cantidadEnCarrito}
+            </span>
+            <button
+              onClick={() => onAgregarAlCarrito(producto)}
+              disabled={producto.stock === 0 || !producto.activo}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-2 ${
+                producto.stock > 0 && producto.activo
+                  ? "bg-green-50 text-green-600 hover:bg-green-100"
+                  : "bg-slate-100 text-slate-400 cursor-not-allowed"
+              }`}
+            >
+              <span>+</span>
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => onAgregarAlCarrito(producto)}
+            disabled={producto.stock === 0 || !producto.activo}
+            className={`w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+              producto.stock > 0 && producto.activo
+                ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            }`}
+          >
+            <ShoppingCart size={14} />
+            <span>{!producto.activo ? "Producto Inactivo" : producto.stock > 0 ? "Agregar al carrito" : "Sin Stock"}</span>
+          </button>
+        )}
       </div>
     </div>
   )

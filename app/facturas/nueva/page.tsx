@@ -7,10 +7,10 @@ import { Plus, Minus, Printer, Save, ArrowLeft, Calculator, Package, Search, Inf
 import Link from "next/link"
 import { useProductos } from "@/hooks/useProductos"
 import { useFacturas } from "@/hooks/useFacturas"
-import { useRouter, useSearchParams } from "next/navigation" // Importar useSearchParams
+import { useRouter, useSearchParams } from "next/navigation"
 import { ClienteSearchModal } from "@/components/modals/cliente-search-modal"
 import { ProductoSearchModal } from "@/components/modals/producto-search-modal"
-import type { Cliente, Producto } from "@/lib/types" // Importar Producto
+import type { Cliente, Producto } from "@/lib/types"
 
 interface FacturaItem {
   id: string
@@ -23,7 +23,7 @@ interface FacturaItem {
 
 export default function NuevaFactura() {
   const router = useRouter()
-  const searchParams = useSearchParams() // Usar useSearchParams
+  const searchParams = useSearchParams()
   const { productos, loading: loadingProductos } = useProductos(true) // Solo productos activos
   const { crearFactura } = useFacturas()
 
@@ -37,19 +37,51 @@ export default function NuevaFactura() {
   const [showProductoModal, setShowProductoModal] = useState(false)
   const [estadoFactura, setEstadoFactura] = useState<"pagada" | "pendiente">("pagada")
 
-  // Efecto para precargar producto si viene en la URL
+  // Detectar si viene desde productos
+  const vieneDesdeProductos = searchParams.get("desde") === "productos"
+
+  // Efecto para precargar productos del carrito si viene desde la pantalla de productos
   useEffect(() => {
-    const productoId = searchParams.get("productoId")
-    if (productoId && productos.length > 0) {
-      const productoParaPrecargar = productos.find((p) => p.id === Number(productoId))
-      if (productoParaPrecargar) {
-        // Solo agregar si no está ya en la lista
-        if (!items.some((item) => item.producto_id === productoParaPrecargar.id)) {
-          handleSelectProducto(productoParaPrecargar, 1) // Cantidad por defecto 1
+    if (vieneDesdeProductos && productos.length > 0) {
+      const totalItems = parseInt(searchParams.get("totalItems") || "0")
+      const nuevosItems: FacturaItem[] = []
+
+      for (let i = 1; i <= totalItems; i++) {
+        const productoId = searchParams.get(`producto${i}`)
+        const cantidad = parseInt(searchParams.get(`cantidad${i}`) || "1")
+
+        if (productoId) {
+          const producto = productos.find((p) => p.id === Number(productoId))
+          if (producto) {
+            const nuevoItem: FacturaItem = {
+              id: `${producto.id}-${Date.now()}-${i}`,
+              producto_id: producto.id,
+              nombre: producto.nombre,
+              cantidad: cantidad,
+              precio: producto.precio,
+              total: cantidad * producto.precio,
+            }
+            nuevosItems.push(nuevoItem)
+          }
+        }
+      }
+
+      if (nuevosItems.length > 0) {
+        setItems(nuevosItems)
+      }
+    } else {
+      // Lógica original para productos individuales
+      const productoId = searchParams.get("productoId")
+      if (productoId && productos.length > 0) {
+        const productoParaPrecargar = productos.find((p) => p.id === Number(productoId))
+        if (productoParaPrecargar) {
+          if (!items.some((item) => item.producto_id === productoParaPrecargar.id)) {
+            handleSelectProducto(productoParaPrecargar, 1)
+          }
         }
       }
     }
-  }, [searchParams, productos]) // Dependencias: searchParams y productos
+  }, [searchParams, productos, vieneDesdeProductos])
 
   const handleSelectCliente = (clienteSeleccionado: Cliente) => {
     setCliente(clienteSeleccionado)
@@ -61,7 +93,7 @@ export default function NuevaFactura() {
 
   const handleSelectProducto = (producto: Producto, cantidad: number) => {
     const nuevoItem: FacturaItem = {
-      id: `${producto.id}-${Date.now()}-${Math.random()}`, // ID único para permitir múltiples del mismo producto
+      id: `${producto.id}-${Date.now()}-${Math.random()}`,
       producto_id: producto.id,
       nombre: producto.nombre,
       cantidad: cantidad,
@@ -91,6 +123,20 @@ export default function NuevaFactura() {
 
   const calcularSubtotal = () => {
     return items.reduce((sum, item) => sum + item.cantidad * item.precio, 0)
+  }
+
+  const limpiarCarritoEnLocalStorage = () => {
+    if (vieneDesdeProductos) {
+      localStorage.removeItem('carrito-productos')
+    }
+  }
+
+  const handleVolver = () => {
+    if (vieneDesdeProductos) {
+      router.push('/productos')
+    } else {
+      router.push('/facturas')
+    }
   }
 
   const guardarFactura = async () => {
@@ -140,8 +186,15 @@ export default function NuevaFactura() {
 
       const facturaCreada = await crearFactura(facturaData)
 
-      // Redirigir a la lista de facturas o mostrar la factura creada
-      router.push(`/facturas?success=true&numero=${facturaCreada.numero_factura}`)
+      // Limpiar carrito si viene desde productos
+      limpiarCarritoEnLocalStorage()
+
+      // Redirigir según el origen
+      if (vieneDesdeProductos) {
+        router.push(`/productos?factura_creada=true&numero=${facturaCreada.numero_factura}`)
+      } else {
+        router.push(`/facturas?success=true&numero=${facturaCreada.numero_factura}`)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
     } finally {
@@ -163,13 +216,16 @@ export default function NuevaFactura() {
           <div className="max-w-4xl mx-auto">
             {/* Header con botones*/}
             <div className="flex items-center justify-between mb-6">
-              <Link
-                href="/facturas"
+              <button
+                onClick={handleVolver}
                 className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft size={20} />
-                <span className="hidden md:inline">Volver a facturas</span>
-              </Link>
+                <span className="hidden md:inline">
+                  {vieneDesdeProductos ? "Volver a productos" : "Volver a facturas"}
+                </span>
+                <span className="md:hidden">Volver</span>
+              </button>
 
               <div className="flex space-x-2 md:space-x-3">
                 <button
@@ -191,6 +247,18 @@ export default function NuevaFactura() {
                 </button>
               </div>
             </div>
+
+            {/* Mensaje informativo si viene desde productos */}
+            {vieneDesdeProductos && items.length > 0 && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Package className="text-green-600" size={20} />
+                  <p className="text-green-700">
+                    <span className="font-semibold">Productos del carrito cargados:</span> {items.length} artículo{items.length !== 1 ? 's' : ''} agregado{items.length !== 1 ? 's' : ''} automáticamente.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {!showPreview ? (
               /* Formulario de edición */
@@ -528,7 +596,6 @@ export default function NuevaFactura() {
             )}
           </div>
 
-          {/* Botón guardar flotante para móvil - POSICIÓN MEJORADA */}
           {!showPreview && (
             <div className="md:hidden fixed bottom-20 right-6 z-50">
               <button
