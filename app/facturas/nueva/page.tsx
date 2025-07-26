@@ -244,15 +244,14 @@ export default function NuevaFactura() {
                       <h3 className="text-lg font-semibold text-slate-900">Información del Cliente</h3>
                     </div>
 
-                    {/* Botones de info y buscar - en la misma fila en desktop */}
+                    {/* Botones de info y buscar */}
                     <div className="flex items-center space-x-2 md:order-last">
                       <div className="group relative">
                         <button className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
                           <Info size={16} />
                         </button>
-                        <div className="absolute right-0 md:-right-4 top-8 w-64 p-3 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                          Recuerda que debes tener el cliente registrado para solo tener que buscarlo en la lupa y se
-                          autocomplete con su código y nombre correspondiente.
+                        <div className="absolute -left-5 md:-left-4 top-8 w-64 p-3 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                          Recuerda que debes tener el cliente registrado para solo tener que buscarlo en la lupa y se autocomplete con su código y nombre correspondiente.
                         </div>
                       </div>
 

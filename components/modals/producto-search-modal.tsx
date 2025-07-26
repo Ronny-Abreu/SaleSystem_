@@ -118,7 +118,7 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
       }
     }
 
-    // Animación unificada para móvil y desktop
+    // Animación carrito
     setIsCartAnimating(true)
 
     setTimeout(() => {
@@ -132,7 +132,7 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
           handleClose()
         },
         window.innerWidth < 768 ? 1500 : 1000,
-      ) // Menos tiempo en desktop
+      )
     }, 1000)
   }
 
@@ -336,15 +336,15 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
                     </div>
 
                     {/* Input de cantidad */}
-                    <div className="col-span-2">
+                    <div className="col-span-2 mb-1">
                       <input
-                        type="number"
-                        min="1"
-                        max={producto.stock}
-                        value={cantidad}
-                        onChange={(e) => handleCantidadChange(producto.id, Number.parseInt(e.target.value) || 1)}
-                        className="w-full px-2 py-1 border border-slate-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        onClick={(e) => e.stopPropagation()}
+                      type="number"
+                      min="1"
+                      max={producto.stock}
+                      value={cantidad}
+                      onChange={(e) => handleCantidadChange(producto.id, Number.parseInt(e.target.value) || 1)}
+                      className="w-full px-2 py-1 border border-slate-300 text-slate-700 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onClick={(e) => e.stopPropagation()}
                       />
                     </div>
 
