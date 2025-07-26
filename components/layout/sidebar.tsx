@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, FileText, Users, Package, BarChart3, Settings, Menu, X, LogOut, User } from "lucide-react"
@@ -26,6 +26,14 @@ export function Sidebar() {
     }
   }
 
+  // Función para manejar el estado del sidebar
+  useEffect(() => {
+    const event = new CustomEvent('sidebarToggle', { 
+      detail: { isOpen } 
+    })
+    window.dispatchEvent(event)
+  }, [isOpen])
+
   return (
     <>
       {/* Mobile menu button */}
@@ -40,13 +48,13 @@ export function Sidebar() {
 
       {/* Overlay */}
       {isOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsOpen(false)} />
+        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[60]" onClick={() => setIsOpen(false)} />
       )}
 
       {/* Sidebar */}
       <aside
         className={`
-        fixed lg:static inset-y-0 left-0 z-40
+        fixed lg:static inset-y-0 left-0 z-[70]
         w-64 bg-white border-r border-slate-200
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
