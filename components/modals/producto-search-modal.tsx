@@ -155,7 +155,7 @@ export function ProductoSearchModal({ isOpen, onClose, onSelectProducto }: Produ
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
       {/* Mensaje de éxito para móvil y desktop */}
       {showSuccessMessage && (
         <div className="absolute inset-0 flex items-center justify-center z-60">
