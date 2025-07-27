@@ -13,7 +13,7 @@ class Database {
             // Configuración para desarrollo local (XAMPP)
             $this->host = 'localhost';
             $this->port = '3308';
-            $this->db_name = 'salesystem';
+            $this->db_name = 'salesystemprueba';
             $this->username = 'root';
             $this->password = '';
             

@@ -81,6 +81,8 @@ CREATE TABLE factura_detalles (
 -- Insertar usuario administrador por defecto
 INSERT INTO usuarios (username, password, nombre, email, rol) VALUES 
 ('admin', 'SaleSystem', 'Administrador', 'admin@larubia.com', 'admin');
+INSERT INTO usuarios (username, password, nombre, email, rol) VALUES 
+('Demo', 'tareafacil25', 'Demo', 'demo@salesystem.com', 'vendedor');
 
 -- Insertar algunos clientes de ejemplo
 INSERT INTO clientes (codigo, nombre, telefono, email) VALUES 
