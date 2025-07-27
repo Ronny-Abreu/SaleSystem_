@@ -133,13 +133,39 @@ class Cliente {
 
     // Eliminar cliente
     public function delete() {
-        $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
-        $stmt = $this->conn->prepare($query);
-        
-        $this->id = htmlspecialchars(strip_tags($this->id));
-        $stmt->bindParam(":id", $this->id);
+        require_once __DIR__ . '/Factura.php';
+        $factura = new Factura($this->conn);
 
-        return $stmt->execute();
+        try {
+            // Iniciar transacción
+            $this->conn->beginTransaction();
+
+            // Verificar si el cliente tiene facturas pendientes
+            if ($factura->hasPendingInvoices($this->id)) {
+                throw new Exception("No se puede eliminar el cliente porque tiene facturas pendientes.");
+            }
+
+            // Eliminar todas las facturas del cliente (pagadas o anuladas)
+            $factura->deleteByClientId($this->id);
+
+            // Eliminar el cliente
+            $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            
+            $this->id = htmlspecialchars(strip_tags($this->id));
+            $stmt->bindParam(":id", $this->id);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Error al eliminar el cliente");
+            }
+
+            $this->conn->commit();
+            return true;
+
+        } catch (Exception $e) {
+            $this->conn->rollback();
+            throw $e;
+        }
     }
 
     // Validar datos del cliente

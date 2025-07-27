@@ -1,4 +1,8 @@
 <?php
+// Para Reporte de errores para desarrollo
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once '../utils/cors.php';
 require_once '../utils/response.php';
 require_once '../config/database.php';
@@ -154,10 +158,14 @@ try {
                 ApiResponse::notFound("Cliente no encontrado");
             }
             
-            if($cliente->delete()) {
-                ApiResponse::success(null, "Cliente eliminado exitosamente");
-            } else {
-                ApiResponse::error("Error al eliminar el cliente");
+            try {
+                if($cliente->delete()) {
+                    ApiResponse::success(null, "Cliente eliminado exitosamente");
+                } else {
+                    ApiResponse::error("Error al eliminar el cliente");
+                }
+            } catch (Exception $e) {
+                ApiResponse::badRequest($e->getMessage());
             }
             break;
             
@@ -167,6 +175,6 @@ try {
     }
     
 } catch (Exception $e) {
-    ApiResponse::badRequest($e->getMessage());
+    ApiResponse::badRequest("Error: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
 }
 ?>
