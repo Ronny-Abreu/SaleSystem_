@@ -236,15 +236,6 @@ export default function NuevaFactura() {
                   <span>Vista previa</span>
                 </button>
 
-                {/* Botón guardar desktop */}
-                <button
-                  onClick={guardarFactura}
-                  disabled={loading}
-                  className="hidden md:flex btn-primary items-center space-x-2"
-                >
-                  <Save size={16} />
-                  <span>{loading ? "Guardando..." : "Guardar"}</span>
-                </button>
               </div>
             </div>
 
@@ -254,7 +245,7 @@ export default function NuevaFactura() {
                 <div className="flex items-center space-x-2">
                   <Package className="text-green-600" size={20} />
                   <p className="text-green-700">
-                    <span className="font-semibold">Productos del carrito cargados:</span> {items.length} artículo{items.length !== 1 ? 's' : ''} agregado{items.length !== 1 ? 's' : ''} automáticamente.
+                    <span className="font-semibold">Productos del carrito cargados:<br></br></span> {items.length} artículo{items.length !== 1 ? 's' : ''} cargados correctamente.
                   </p>
                 </div>
               </div>
@@ -357,35 +348,49 @@ export default function NuevaFactura() {
                   </div>
                 </div>
 
-                {/* Artículos con botón mejorado */}
+                {/* Artículos */}
                 <div className="card">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-slate-900">Artículos ({items.length})</h3>
 
-                    {/* Botón agregar artículo responsive */}
-                    <div className="relative">
-                      {/* Botón móvil - solo + con tooltip permanente */}
+                    {/* Contenedor de botones para escritorio */}
+                    <div className="hidden md:flex items-center space-x-2">
+                      {/* Botón Facturar desktop */}
+                      {cliente && items.length > 0 && (
+                        <button
+                        onClick={guardarFactura}
+                        disabled={loading}
+                        className="btn-primary flex flex-row items-center gap-2 bg-orange-500 hover:bg-orange-600"
+                      >
+                        <Save size={16} />
+                        <span className="whitespace-nowrap">{loading ? "Facturando..." : `Facturar ${cliente?.nombre || ''}`}</span>
+                      </button>
+                      )}
+
+                      {/* Botón desktop */}
                       <button
                         onClick={agregarItem}
-                        className="md:hidden w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-all duration-1000 animate-pulse hover:animate-none shadow-lg"
+                        className="btn-primary flex flex-row items-center gap-2 animate-pulse hover:animate-none"
+                        >
+                        <Plus size={16} />
+                        <span className="whitespace-nowrap">Agregar artículo</span>
+                      </button>
+                    </div>
+
+                    {/* Botón agregar artículo responsive (solo móvil) */}
+                    <div className="relative md:hidden">
+                      <button
+                        onClick={agregarItem}
+                        className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-all duration-1000 animate-pulse hover:animate-none shadow-lg"
                       >
                         <Plus size={20} />
                       </button>
 
                       {/* Tooltip permanente para móvil */}
-                      <div className="md:hidden absolute -top-12 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-10">
-                        <span>Agregar artículo</span>
+                      <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-10">
+                        <span className="whitespace-nowrap">Agregar artículo</span>
                         <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
                       </div>
-
-                      {/* Botón desktop - texto completo con animación */}
-                      <button
-                        onClick={agregarItem}
-                        className="hidden md:flex btn-primary items-center space-x-2 animate-pulse hover:animate-none"
-                      >
-                        <Plus size={16} />
-                        <span>Agregar artículo</span>
-                      </button>
                     </div>
                   </div>
 
@@ -476,6 +481,7 @@ export default function NuevaFactura() {
                   </div>
                 </div>
 
+                
                 {/* Total y comentarios */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="card">
@@ -597,7 +603,7 @@ export default function NuevaFactura() {
           </div>
 
           {!showPreview && (
-            <div className="md:hidden fixed bottom-20 right-6 z-50">
+            <div className={`md:hidden fixed bottom-20 right-6 z-50 transition-opacity duration-500 ${cliente && items.length > 0 ? 'opacity-100' : 'opacity-0'}`}>
               <button
                 onClick={guardarFactura}
                 disabled={loading}
