@@ -2,7 +2,7 @@
 
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { FileText, Plus, Eye, Filter } from "lucide-react"
+import { FileText, Plus, Eye, Filter, Search } from 'lucide-react'
 import Link from "next/link"
 import { useFacturas } from "@/hooks/useFacturas"
 import { useSearchParams } from "next/navigation"
@@ -16,16 +16,27 @@ export default function FacturasPage() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [filtroEstado, setFiltroEstado] = useState("")
   const [filtroFecha, setFiltroFecha] = useState("")
+  const [busqueda, setBusqueda] = useState("")
 
   const { facturas, loading, error } = useFacturas({
     estado: filtroEstado || undefined,
     fecha_desde: filtroFecha || undefined,
   })
 
+  // Filtrar facturas por búsqueda local
+  const facturasFiltradas = facturas.filter((factura) => {
+    if (!busqueda) return true
+    const busquedaLower = busqueda.toLowerCase()
+    return (
+      factura.numero_factura.toLowerCase().includes(busquedaLower) ||
+      factura.cliente?.nombre?.toLowerCase().includes(busquedaLower) ||
+      factura.cliente?.codigo?.toLowerCase().includes(busquedaLower)
+    )
+  })
+
   useEffect(() => {
     if (success === "true" && numero) {
       setShowSuccess(true)
-      // Ocultar el mensaje después de 5 segundos
       setTimeout(() => setShowSuccess(false), 5000)
     }
   }, [success, numero])
@@ -37,7 +48,7 @@ export default function FacturasPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title="Facturas" subtitle="Gestión de facturas de venta" />
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 relative">
           <div className="max-w-6xl mx-auto">
             {/* Mensaje de éxito */}
             {showSuccess && (
@@ -57,35 +68,57 @@ export default function FacturasPage() {
             {/* Header con botones */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">Lista de Facturas</h1>
-                <p className="text-slate-600">Todas las facturas registradas en el sistema</p>
+                <h1 className="text-xl md:text-2xl font-bold text-slate-900">Lista de Facturas</h1>
+                <p className="text-sm md:text-base text-slate-600">Todas las facturas registradas en el sistema</p>
               </div>
-              <Link href="/facturas/nueva" className="btn-primary flex items-center space-x-2">
-                <Plus size={16} />
-                <span>Nueva Factura</span>
-              </Link>
+
+              {/* Botón desktop */}
+              <div className="hidden md:block">
+                <Link href="/facturas/nueva" className="btn-primary flex items-center space-x-2">
+                  <Plus size={16} />
+                  <span>Nueva Factura</span>
+                </Link>
+              </div>
             </div>
 
             {/* Filtros */}
             <div className="card mb-6">
-              <div className="flex items-center space-x-4">
-                <Filter size={20} className="text-slate-400" />
-                <div className="flex space-x-4">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Filter size={20} className="text-slate-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-slate-700">Filtros:</span>
+                </div>
+
+                {/* Barra de búsqueda */}
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    placeholder="Buscar por código de factura o nombre del cliente..."
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                   <select
                     value={filtroEstado}
                     onChange={(e) => setFiltroEstado(e.target.value)}
-                    className="px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 sm:flex-none px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="">Todos los estados</option>
                     <option value="pagada">Pagadas</option>
                     <option value="pendiente">Pendientes</option>
                     <option value="anulada">Anuladas</option>
                   </select>
+
                   <input
                     type="date"
                     value={filtroFecha}
                     onChange={(e) => setFiltroFecha(e.target.value)}
-                    className="px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 sm:flex-none px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="Filtrar por fecha"
                   />
                 </div>
               </div>
@@ -102,7 +135,7 @@ export default function FacturasPage() {
                 <div className="text-center py-8 text-red-600">
                   <p>Error: {error}</p>
                 </div>
-              ) : facturas.length > 0 ? (
+              ) : facturasFiltradas.length > 0 ? (
                 <>
                   {/* Vista desktop */}
                   <div className="hidden md:block overflow-x-auto">
@@ -118,7 +151,7 @@ export default function FacturasPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {facturas.map((factura) => (
+                        {facturasFiltradas.map((factura) => (
                           <tr key={factura.id} className="border-b border-slate-100 hover:bg-slate-50">
                             <td className="py-3 px-4 font-medium text-slate-900">{factura.numero_factura}</td>
                             <td className="py-3 px-4 text-slate-600">
@@ -159,7 +192,7 @@ export default function FacturasPage() {
 
                   {/* Vista móvil */}
                   <div className="md:hidden space-y-4">
-                    {facturas.map((factura) => (
+                    {facturasFiltradas.map((factura) => (
                       <div key={factura.id} className="p-4 border border-slate-200 rounded-lg bg-white">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-medium text-slate-900">{factura.numero_factura}</span>
@@ -204,6 +237,17 @@ export default function FacturasPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Botón flotante para móvil */}
+          <div className="md:hidden fixed bottom-6 right-6 z-50">
+            <Link
+              href="/facturas/nueva"
+              className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+              title="Nueva Factura"
+            >
+              <Plus size={24} />
+            </Link>
           </div>
         </main>
       </div>

@@ -306,6 +306,66 @@ class Factura {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    // Eliminar factura y sus detalles
+    public function delete() {
+        // Eliminar detalles de la factura
+        $query = "DELETE FROM " . $this->detalles_table . " WHERE factura_id = :factura_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":factura_id", $this->id);
+        if (!$stmt->execute()) {
+            throw new Exception("Error al eliminar los detalles de la factura");
+        }
+
+        // Eliminar la factura
+        $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":id", $this->id);
+        if (!$stmt->execute()) {
+            throw new Exception("Error al eliminar la factura");
+        }
+        return true;
+    }
+
+    // Comprobar si un cliente tiene facturas pendientes
+    public function hasPendingInvoices($cliente_id) {
+        $query = "SELECT COUNT(*) as total FROM " . $this->table_name . " WHERE cliente_id = :cliente_id AND estado = 'pendiente' LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":cliente_id", $cliente_id);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row['total'] > 0;
+    }
+
+    // Eliminar todas las facturas y sus detalles de un cliente
+    public function deleteByClientId($cliente_id) {
+        // Obtener todas las facturas del cliente
+        $query_facturas = "SELECT id FROM " . $this->table_name . " WHERE cliente_id = :cliente_id";
+        $stmt_facturas = $this->conn->prepare($query_facturas);
+        $stmt_facturas->bindParam(":cliente_id", $cliente_id);
+        $stmt_facturas->execute();
+        $facturas_ids = $stmt_facturas->fetchAll(PDO::FETCH_COLUMN);
+
+        if (!empty($facturas_ids)) {
+            $ids_string = implode(',', $facturas_ids);
+
+            // Eliminar detalles de las facturas
+            $query_detalles = "DELETE FROM " . $this->detalles_table . " WHERE factura_id IN (" . $ids_string . ")";
+            $stmt_detalles = $this->conn->prepare($query_detalles);
+            if (!$stmt_detalles->execute()) {
+                throw new Exception("Error al eliminar los detalles de las facturas del cliente");
+            }
+        }
+
+        // Eliminar las facturas del cliente
+        $query_facturas_delete = "DELETE FROM " . $this->table_name . " WHERE cliente_id = :cliente_id";
+        $stmt_facturas_delete = $this->conn->prepare($query_facturas_delete);
+        $stmt_facturas_delete->bindParam(":cliente_id", $cliente_id);
+        if (!$stmt_facturas_delete->execute()) {
+            throw new Exception("Error al eliminar las facturas del cliente");
+        }
+        return true;
+    }
+
     // Validar datos de la factura
     public function validate($detalles_data) {
         try {
