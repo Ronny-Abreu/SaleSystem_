@@ -243,7 +243,7 @@ try {
         <?php endif; ?>
 
         <?php if ($response['success']): ?>
-            <a href="http://localhost:3001" class="button">Ir al Sistema</a>
+            <a href="http://localhost:3000" class="button">Ir al Sistema</a>
         <?php else: ?>
             <p class="footer">Por favor, revisa los errores anteriores y asegúrate de que tu servidor de base de datos esté funcionando correctamente.</p>
         <?php endif; ?>
