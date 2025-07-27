@@ -23,9 +23,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
     )
   }
 
-  if (!isAuthenticated) {
-    return <LoginModal isOpen={true} />
-  }
+  const blurClass = !isAuthenticated ? "filter blur-sm brightness-50 pointer-events-none" : "";
 
-  return <>{children}</>
+  return (
+    <>
+      <div className={blurClass}>
+        {children}
+      </div>
+      {!isAuthenticated && <LoginModal isOpen={true} />}
+    </>
+  )
 }

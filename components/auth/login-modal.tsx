@@ -53,12 +53,7 @@ export function LoginModal({ isOpen }: LoginModalProps) {
       <div 
         className="absolute inset-0 backdrop-blur-md"
         style={{
-          background: `
-            radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3), transparent 50%),
-            radial-gradient(circle at 40% 80%, rgba(120, 119, 255, 0.3), transparent 50%),
-            rgba(255, 255, 255, 0.1)
-          `
+          background: 'rgba(0, 0, 0, 0.5)' /* Fondo oscuro y opaco */
         }}
       />
 
@@ -66,12 +61,7 @@ export function LoginModal({ isOpen }: LoginModalProps) {
       <div 
         className="relative w-full max-w-md mx-4 rounded-2xl shadow-2xl overflow-hidden"
         style={{
-          background: `
-            linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.25), 
-              rgba(255, 255, 255, 0.1)
-            )
-          `,
+          background: 'transparent', /* Fondo transparente para mostrar el backdrop */
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -82,20 +72,6 @@ export function LoginModal({ isOpen }: LoginModalProps) {
           `
         }}
       >
-        {/* Decorative gradient overlay */}
-        <div 
-          className="absolute inset-0 opacity-30"
-          style={{
-            background: `
-              linear-gradient(45deg, 
-                transparent 30%, 
-                rgba(120, 119, 198, 0.1) 50%, 
-                transparent 70%
-              )
-            `
-          }}
-        />
-        
         <div className="relative p-8">
           <div className="text-center mb-8">
             <div 
@@ -207,7 +183,7 @@ export function LoginModal({ isOpen }: LoginModalProps) {
                     border: '1px solid rgba(255, 255, 255, 0.1)'
                   }}
                 >
-                  <strong className="text-white">Demo</strong> / tareafacil2025 (Vendedor)
+                  <strong className="text-white">Demo</strong> / tareafacil25 (Vendedor)
                 </div>
               </div>
             </div>
