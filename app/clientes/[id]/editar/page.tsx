@@ -217,9 +217,10 @@ export default function EditarCliente() {
                   >
                     Cancelar
                   </Link>
-                  <button type="submit" disabled={loading} className="btn-primary flex items-center space-x-2">
+                  <button type="submit" disabled={loading} className="btn-primary flex items-center space-x-2 px-4 py-2">
                     <Save size={16} />
-                    <span>{loading ? "Guardando..." : "Guardar Cambios"}</span>
+                    <span className="hidden sm:inline-block">{loading ? "Guardando..." : "Guardar Cambios"}</span>
+                    <span className="inline-block sm:hidden">{loading ? "Guardando..." : "Guardar"}</span>
                   </button>
                 </div>
               </form>

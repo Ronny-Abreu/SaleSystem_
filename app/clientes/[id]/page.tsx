@@ -181,7 +181,9 @@ export default function DetalleCliente() {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
                         <div className="flex items-center space-x-2">
                           <Phone size={16} className="text-slate-400" />
-                          <p className="text-slate-900">{cliente.telefono}</p>
+                          <a href={`tel:${cliente.telefono}`} className="text-blue-600 hover:underline">
+                            <p className="text-slate-900">{cliente.telefono}</p>
+                          </a>
                         </div>
                       </div>
                     )}
@@ -191,7 +193,9 @@ export default function DetalleCliente() {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                         <div className="flex items-center space-x-2">
                           <Mail size={16} className="text-slate-400" />
-                          <p className="text-slate-900">{cliente.email}</p>
+                          <a href={`mailto:${cliente.email}`} className="text-blue-600 hover:underline">
+                            <p className="text-slate-900">{cliente.email}</p>
+                          </a>
                         </div>
                       </div>
                     )}
@@ -201,7 +205,14 @@ export default function DetalleCliente() {
                         <label className="block text-sm font-medium text-slate-700 mb-1">Dirección</label>
                         <div className="flex items-start space-x-2">
                           <MapPin size={16} className="text-slate-400 mt-0.5" />
-                          <p className="text-slate-900">{cliente.direccion}</p>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cliente.direccion)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            <p className="text-slate-900">{cliente.direccion}</p>
+                          </a>
                         </div>
                       </div>
                     )}

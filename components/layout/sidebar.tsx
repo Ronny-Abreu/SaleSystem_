@@ -39,8 +39,8 @@ export function Sidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`lg:hidden fixed top-4 z-50 p-2 bg-white rounded-lg shadow-md transition-all duration-300 ${
-          isOpen ? 'right-4' : 'left-4'
+        className={`lg:hidden fixed top-4 z-[80] p-2 bg-white rounded-lg shadow-md transition-all duration-300 ${
+          isOpen ? 'left-[272px]' : 'left-4'
         }`}
       >
         {isOpen ? <X size={24} color="black" /> : <Menu size={24} color="black" />}

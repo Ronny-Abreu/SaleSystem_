@@ -1,58 +1,41 @@
 "use client"
 
-import { Header } from "@/components/layout/header"
-import { Sidebar } from "@/components/layout/sidebar"
-import { Users, Plus, Edit, Trash2, Phone, Mail, Eye, AlertTriangle, Search, Filter, X } from "lucide-react"
-import Link from "next/link"
-import { useClientes } from "@/hooks/useClientes"
-import { useRouter } from "next/navigation"
 import { useState, useEffect, useMemo } from "react"
-import { facturasApi } from "@/lib/api"
-import type { Factura } from "@/lib/types"
+import { useRouter } from "next/navigation"
+import { useClientes } from "@/hooks/useClientes"
+import { useFacturas } from "@/hooks/useFacturas"
+import { Sidebar } from "@/components/layout/sidebar"
+import { Header } from "@/components/layout/header"
+import { Search, X, AlertTriangle, Plus, Edit, Trash2, Loader2, Users, Phone }
+  from "lucide-react"
+import { Cliente } from "@/lib/types"
+import { AlertDialog } from "@/components/ui/AlertDialog"
+import Link from "next/link"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 
 export default function ClientesPage() {
   const router = useRouter()
   const { clientes, loading, error, eliminarCliente } = useClientes()
-  const [deletingId, setDeletingId] = useState<number | null>(null)
-  const [facturas, setFacturas] = useState<Factura[]>([])
-  const [loadingFacturas, setLoadingFacturas] = useState(true)
-  const [clientesConDeuda, setClientesConDeuda] = useState<Set<number>>(new Set())
-  
-  // Estados para búsqueda y filtros
+  const { facturas, loading: loadingFacturas } = useFacturas()
   const [searchTerm, setSearchTerm] = useState("")
   const [showDebtFilter, setShowDebtFilter] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false)
+  const [alertDialogMessage, setAlertDialogMessage] = useState("")
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
+  const [clienteToDelete, setClienteToDelete] = useState<{ id: number; nombre: string } | null>(null)
 
-  // Cargar facturas para calcular deudas
-  useEffect(() => {
-    const cargarFacturas = async () => {
-      try {
-        setLoadingFacturas(true)
-        const response = await facturasApi.getAll()
-        if (response.success) {
-          setFacturas(response.data)
-
-          // Calcular qué clientes tienen deuda
-          const clientesConDeudaPendiente = new Set<number>()
-          response.data.forEach((factura: Factura) => {
-            if (factura.estado === "pendiente") {
-              clientesConDeudaPendiente.add(factura.cliente_id)
-            }
-          })
-          setClientesConDeuda(clientesConDeudaPendiente)
-        }
-      } catch (err) {
-        console.error("Error cargando facturas:", err)
-      } finally {
-        setLoadingFacturas(false)
+  const clientesConDeuda = useMemo(() => {
+    const clientesConDeudaPendiente = new Set<number>()
+    facturas.forEach((factura) => {
+      if (factura.estado === "pendiente") {
+        clientesConDeudaPendiente.add(factura.cliente_id)
       }
-    }
+    })
+    return clientesConDeudaPendiente
+  }, [facturas])
 
-    if (clientes.length > 0) {
-      cargarFacturas()
-    }
-  }, [clientes])
 
-  // Filtrar clientes basado en búsqueda y filtros
   const clientesFiltrados = useMemo(() => {
     let resultado = clientes
 
@@ -74,15 +57,37 @@ export default function ClientesPage() {
   }, [clientes, searchTerm, showDebtFilter, clientesConDeuda])
 
   const handleDelete = async (id: number, nombre: string) => {
-    if (confirm(`¿Está seguro de que desea eliminar al cliente "${nombre}"?`)) {
-      try {
-        setDeletingId(id)
-        await eliminarCliente(id)
-      } catch (err) {
-        alert("Error al eliminar el cliente: " + (err instanceof Error ? err.message : "Error desconocido"))
-      } finally {
-        setDeletingId(null)
-      }
+    setClienteToDelete({ id, nombre })
+    setIsConfirmDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!clienteToDelete) return
+
+    const { id, nombre } = clienteToDelete
+    setIsConfirmDialogOpen(false)
+
+    const hasPending = clientesConDeuda.has(id)
+
+    if (hasPending) {
+      setAlertDialogMessage("No es posible. El cliente debe tener la cuenta saldada para poder ser eliminado.")
+      setIsAlertDialogOpen(true)
+      setClienteToDelete(null)
+      return
+    }
+
+    try {
+      setDeletingId(id)
+      await eliminarCliente(id)
+
+    } catch (err) {
+      console.warn("Error al eliminar cliente:", err)
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setAlertDialogMessage(errorMessage)
+      setIsAlertDialogOpen(true)
+    } finally {
+      setDeletingId(null)
+      setClienteToDelete(null)
     }
   }
 
@@ -169,8 +174,8 @@ export default function ClientesPage() {
                         onClick={limpiarFiltros}
                         className="flex items-center space-x-1 px-2 py-1 text-xs text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded"
                       >
-                        <X size={12} />
-                        <span>Limpiar</span>
+                        <X size={14} />
+                        <span>Limpiar filtros</span>
                       </button>
                     </div>
                   )}
@@ -185,163 +190,198 @@ export default function ClientesPage() {
                 </Link>
               </div>
             </div>
+            {loading ? (
+              <div className="flex justify-center items-center h-48">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                <p className="ml-2 text-slate-600">Cargando clientes...</p>
+              </div>
+            ) : clientesFiltrados.length === 0 ? (
+              <div className="text-center py-10 border border-dashed border-slate-300 rounded-lg bg-white mt-4">
+                <p className="text-slate-500 text-lg font-medium">No se encontraron clientes</p>
+                <p className="text-slate-500 text-sm mt-1">Ajusta tus filtros o añade un nuevo cliente.</p>
+                <button
+                  onClick={() => router.push("/clientes/nuevo")}
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <Plus size={16} className="mr-2" />
+                  Añadir Cliente
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                {clientesFiltrados.map((cliente) => {
+                  const tieneDeuda = clientesConDeuda.has(cliente.id)
 
-            {/* Lista de clientes */}
-            <div className="card">
-              {loading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="text-slate-600 mt-2">Cargando clientes...</p>
-                </div>
-              ) : error ? (
-                <div className="text-center py-8 text-red-600">
-                  <p>Error: {error}</p>
-                </div>
-              ) : clientesFiltrados.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {clientesFiltrados.map((cliente) => {
-                    const tieneDeuda = clientesConDeuda.has(cliente.id)
-
-                    return (
+                  return (
+                    <div
+                      key={cliente.id}
+                      className={`bg-white border rounded-lg shadow-sm overflow-hidden transform transition-transform duration-200 hover:scale-[1.01] flex flex-col relative ${
+                        tieneDeuda
+                          ? "border-red-200 bg-red-50/30 hover:bg-red-50/50"
+                          : "border-slate-200"
+                      }`}
+                    >
                       <div
-                        key={cliente.id}
-                        className={`p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer group relative ${
-                          tieneDeuda
-                            ? "border-red-200 bg-red-50/30 hover:bg-red-50/50"
-                            : "border-slate-200 hover:bg-slate-50"
-                        }`}
+                        className="p-3 cursor-pointer flex-grow"
                         onClick={() => handleCardClick(cliente.id)}
                       >
-                        {/* Indicador de deuda */}
-                        {tieneDeuda && (
-                          <div className="absolute -top-2 -right-2 z-10">
-                            <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
-                              <AlertTriangle size={12} className="text-white" />
+                        <div className="flex items-center justify-between mb-2 relative"> {/* Added relative here */}
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <Users size={20} className="text-blue-600" />
                             </div>
-                          </div>
-                        )}
-
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <h3
-                                className={`font-semibold group-hover:text-blue-600 transition-colors text-sm md:text-base ${
-                                  tieneDeuda ? "text-slate-900" : "text-slate-900"
-                                }`}
-                              >
+                            <div>
+                              <h3 className="text-base font-semibold text-slate-900 flex items-center">
                                 {cliente.nombre}
+                                {tieneDeuda && ( // Icon moved here, next to the client's name
+                                  <AlertTriangle size={16} className="text-red-500 ml-2" />
+                                )}
                               </h3>
-                              {tieneDeuda && (
-                                <span title="Cliente con deuda pendiente">
-                                  <AlertTriangle size={16} className="text-red-500 flex-shrink-0" />
-                                </span>
-                              )}
+                              <p className="text-sm text-slate-600">Código: {cliente.codigo}</p>
                             </div>
-                            <p className="text-xs md:text-sm text-slate-600">Código: {cliente.codigo}</p>
-                            {tieneDeuda && (
-                              <p className="text-xs text-red-600 font-medium mt-1">Tiene facturas pendientes</p>
-                            )}
                           </div>
-                          <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                router.push(`/clientes/${cliente.id}`)
-                              }}
-                              className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
-                              title="Ver detalles"
-                            >
-                              <Eye size={14} />
-                            </button>
+                          <div className="flex space-x-1 relative"> {/* Added relative here */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 router.push(`/clientes/${cliente.id}/editar`)
                               }}
-                              className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded"
+                              className="p-2 rounded-full text-slate-600 hover:bg-slate-200 transition-colors"
                               title="Editar cliente"
                             >
-                              <Edit size={14} />
+                              <Edit size={16} />
                             </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleDelete(cliente.id, cliente.nombre)
                               }}
+                              className={`p-2 rounded-full text-red-600 hover:bg-red-200 transition-colors ${
+                                deletingId === cliente.id ? "opacity-50 cursor-not-allowed" : ""
+                              }`}
                               disabled={deletingId === cliente.id}
-                              className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50"
                               title="Eliminar cliente"
                             >
-                              <Trash2 size={14} />
+                              {deletingId === cliente.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 size={16} />
+                              )}
                             </button>
                           </div>
                         </div>
-
-                        <div className="space-y-2 text-xs md:text-sm text-slate-600">
-                          {cliente.telefono && (
-                            <div className="flex items-center space-x-2">
-                              <Phone size={14} />
-                              <span>{cliente.telefono}</span>
-                            </div>
-                          )}
-                          {cliente.email && (
-                            <div className="flex items-center space-x-2">
-                              <Mail size={14} />
-                              <span className="truncate">{cliente.email}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-3 pt-3 border-t border-slate-100">
-                          <p className="text-xs text-slate-500">
-                            Registrado: {new Date(cliente.created_at).toLocaleDateString("es-DO")}
+                        {tieneDeuda && (
+                          <p className="text-xs text-red-600 font-medium mt-1">Tiene facturas pendientes</p>
+                        )}
+                        <div className="mt-4 text-xs text-slate-700">
+                        {cliente.telefono && (
+                          <p className="flex items-center">
+                            <Phone size={14} className="mr-2 text-slate-500" />{" "}
+                            <a href={`tel:${cliente.telefono}`} className="text-blue-600 hover:underline">
+                              {cliente.telefono}
+                            </a>
                           </p>
-                        </div>
-
-                        {/* Indicador visual de que es clickeable */}
-                        <div className="mt-2 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                          Click para ver detalles y facturas →
-                        </div>
+                        )}
+                        {cliente.email && (
+                          <p className="flex items-center mt-1">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="mr-2 text-slate-500"
+                            >
+                              <rect width="20" height="16" x="2" y="4" rx="2" />
+                              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                            </svg>{" "}
+                            <a href={`mailto:${cliente.email}`} className="text-blue-600 hover:underline">
+                              {cliente.email}
+                            </a>
+                          </p>
+                        )}
+                        {cliente.direccion && (
+                          <p className="flex items-start mt-1">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="mr-2 text-slate-500 mt-1"
+                            >
+                              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                              <circle cx="12" cy="10" r="3" />
+                            </svg>{" "}
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cliente.direccion)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {cliente.direccion}
+                            </a>
+                          </p>
+                        )}
                       </div>
-                    )
-                  })}
-                </div>
-              ) : clientes.length > 0 ? (
-                // Mostrar mensaje cuando hay clientes pero ninguno coincide con los filtros
-                <div className="text-center py-8 text-slate-500">
-                  <Filter size={48} className="mx-auto mb-4 text-slate-300" />
-                  <p>No se encontraron clientes con los filtros aplicados</p>
-                  <p className="text-sm">Intenta ajustar tu búsqueda o limpiar los filtros</p>
-                  <button
-                    onClick={limpiarFiltros}
-                    className="mt-3 text-blue-600 hover:text-blue-700 text-sm underline"
-                  >
-                    Limpiar filtros
-                  </button>
-                </div>
-              ) : (
-                // Mensaje cuando no hay clientes en absoluto
-                <div className="text-center py-8 text-slate-500">
-                  <Users size={48} className="mx-auto mb-4 text-slate-300" />
-                  <p>No hay clientes registrados</p>
-                  <p className="text-sm">Los clientes aparecerán aquí cuando se registren</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Botón flotante para móvil */}
-          <div className="md:hidden fixed bottom-6 right-6 z-50">
-            <Link
-              href="/clientes/nuevo"
-              className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
-              title="Nuevo Cliente"
-            >
-              <Plus size={24} />
-            </Link>
+                    </div>
+                    <div className="border-t border-slate-200 p-3 bg-slate-50 flex justify-between items-center text-xs text-slate-500">
+                      <span>Registrado: {new Date(cliente.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                )})}
+              </div>
+            )}
           </div>
         </main>
+
+        {/* Botón flotante para móvil */}
+        <div className="md:hidden fixed bottom-6 right-6 z-50">
+          <Link
+            href="/clientes/nuevo"
+            className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+            title="Nuevo Cliente"
+          >
+            <Plus size={24} />
+          </Link>
+        </div>
+
       </div>
+
+      {isConfirmDialogOpen && clienteToDelete && (
+        <ConfirmDialog
+          isOpen={isConfirmDialogOpen}
+          onClose={() => setIsConfirmDialogOpen(false)}
+          onConfirm={handleConfirmDelete}
+          title={`Eliminar cliente "${clienteToDelete.nombre}"`}
+          message={
+            clientesConDeuda.has(clienteToDelete.id)
+              ? "Este cliente tiene facturas pendientes. ¿Está seguro de que desea intentar eliminarlo?"
+              : `¿Está seguro de que desea eliminar al cliente "${clienteToDelete.nombre}"? Esta acción no se puede deshacer.`
+          }
+          isDestructive={true}
+          showWarningIcon={clientesConDeuda.has(clienteToDelete.id)}
+          confirmText={clientesConDeuda.has(clienteToDelete.id) ? "Sí, eliminar" : "Eliminar"
+          }
+        />
+      )}
+
+      {isAlertDialogOpen && (
+        <AlertDialog
+          isOpen={isAlertDialogOpen}
+          onClose={() => setIsAlertDialogOpen(false)}
+          title="Error al eliminar cliente"
+          message={alertDialogMessage}
+        />
+      )}
     </div>
   )
 }
