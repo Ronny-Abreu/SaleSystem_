@@ -1,26 +1,30 @@
 <?php
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+require_once __DIR__ . '/utils/cors.php';
+setCorsHeaders();
 
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    exit(0);
-}
 
 // Enrutar las requests a la carpeta api
 $request = $_SERVER['REQUEST_URI'];
 $path = parse_url($request, PHP_URL_PATH);
 
-if (strpos($path, '/api/') === 0) {
-    $file = __DIR__ . $path . '.php';
-    if (file_exists($file)) {
-        include $file;
-    } else {
-        http_response_code(404);
-        echo json_encode(['error' => 'Endpoint no encontrado']);
-    }
+
+$api_path_prefix = '/backend/api/';
+if (strpos($path, $api_path_prefix) === 0) {
+    // Si la request es por ejemplo /backend/api/facturas.php
+    $relative_api_path = substr($path, strlen($api_path_prefix));
+    $file = __DIR__ . '/api/' . $relative_api_path;
+} elseif (strpos($path, '/api/') === 0) {
+    // Si la request es directamente /api/facturas.php (sin /backend/)
+    $file = __DIR__ . $path;
 } else {
-    echo json_encode(['message' => 'SaleSystem API funcionando correctamente']);
+    $file = '';
+}
+
+
+if ($file && file_exists($file . '.php')) { 
+    include $file . '.php';
+} else {
+    http_response_code(404);
+    echo json_encode(['error' => 'Endpoint no encontrado']);
 }
 ?>
