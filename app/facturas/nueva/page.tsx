@@ -189,6 +189,10 @@ export default function NuevaFactura() {
       // Limpiar carrito si viene desde productos
       limpiarCarritoEnLocalStorage()
 
+      // Abrir PDF en una nueva pestaña
+      const pdfUrl = `http://localhost/salesystem/backend/api/facturas.php?action=generate_pdf&id=${facturaCreada.id}`
+      window.open(pdfUrl, "_blank")
+
       // Redirigir según el origen
       if (vieneDesdeProductos) {
         router.push(`/productos?factura_creada=true&numero=${facturaCreada.numero_factura}`)

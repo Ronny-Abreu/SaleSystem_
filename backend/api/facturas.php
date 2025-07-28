@@ -1,15 +1,19 @@
 <?php
-// Para Reporte de errores para desarrollo
-error_reporting(E_ALL);
-ini_set('display_errors', 0); //
 
-require_once '../utils/cors.php';
+require_once __DIR__ . '/../../vendor/autoload.php'; // Autoload de Composer
+require_once './../utils/cors.php';
+
+setCorsHeaders();
+ob_start();
+
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+
 require_once '../utils/response.php';
 require_once '../config/database.php';
 require_once '../models/Factura.php';
 require_once '../models/Cliente.php';
 
-setCorsHeaders();
 
 $database = new Database();
 $db = $database->getConnection();
@@ -21,10 +25,178 @@ if (!$db) {
 $factura = new Factura($db);
 $method = $_SERVER['REQUEST_METHOD'];
 
+error_log("DEBUG: Request Method: " . $method);
+error_log("DEBUG: GET Parameters: " . json_encode($_GET));
+
 try {
     switch($method) {
         case 'GET':
-            if(isset($_GET['id'])) {
+            error_log("DEBUG: Inside GET case.");
+
+            // Manejar la acción de generar PDF primero y de forma exclusiva
+            if(isset($_GET['action']) && $_GET['action'] === 'generate_pdf') {
+                error_log("DEBUG: Hitting generate_pdf block.");
+                if(!isset($_GET['id'])) {
+                    error_log("DEBUG: ID missing for PDF generation.");
+                    ApiResponse::badRequest("ID de la factura requerido para generar PDF");
+                }
+                $id = $_GET['id'];
+                error_log("DEBUG: PDF ID: " . $id);
+                
+                $factura_pdf = new Factura($db);
+                if(!$factura_pdf->findById($id)) {
+                    error_log("DEBUG: Factura not found for PDF generation. ID: " . $id);
+                    ApiResponse::notFound("Factura no encontrada para generar PDF");
+                }
+                error_log("DEBUG: Factura found for PDF (nombre): " . $factura_pdf->cliente['nombre']);
+
+                // Leer el archivo de la imagen y codificarlo en Base64
+                $imagePath = __DIR__ . '/../../public/SaleSystemLOGO.png';
+                
+                $imageData = file_get_contents($imagePath);
+                if ($imageData === FALSE) {
+                    error_log("DEBUG LOGO: Error al leer el archivo de imagen: " . $imagePath);
+                    $imageSrc = ''; // No establecer una fuente de imagen si falla la lectura
+                } else {
+                    $imageData = base64_encode($imageData);
+                    $imageSrc = 'data:image/png;base64,' . $imageData;
+                    error_log("DEBUG LOGO: Longitud Base64: " . strlen($imageData));
+                }
+
+                // Generar HTML para el PDF
+                $html = '
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Factura #' . htmlspecialchars($factura_pdf->numero_factura) . '</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; font-size: 10pt; }
+                        .container { width: 100%; max-width: 800px; margin: 0 auto; border: 1px solid #eee; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.05); } /* Estilo de tarjeta */
+                        .header { text-align: center; margin-bottom: 30px; } /* Centrar el encabezado */
+                        .header img { max-width: 150px; margin-bottom: 10px; } /* Estilo del logo */
+                        .header h1 { margin: 0; font-size: 24pt; color: #333; } /* Título principal */
+                        .header p { margin: 0; font-size: 11pt; color: #777; } /* Subtítulo */
+                        
+                        .info-section { margin-bottom: 20px; overflow: auto; } /* Contenedor de información, con clearfix */
+                        .client-info { float: left; width: 48%; text-align: left; vertical-align: top; } /* Información del cliente a la izquierda */
+                        .invoice-info { float: right; width: 48%; text-align: right; vertical-align: top; } /* Información de la factura a la derecha */
+                        
+                        .info-section h2 { font-size: 14pt; color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; } /* Títulos de sección */
+                        .info-section p { margin: 2px 0; color: #666; } /* Párrafos de información */
+
+                        .items-table { width: 100%; border-collapse: collapse; margin-top: 20px; } /* Tabla de artículos */
+                        .items-table th, .items-table td { border: 1px solid #eee; padding: 8px; text-align: left; } /* Celdas de la tabla */
+                        .items-table th { background-color: #f8f8f8; color: #333; font-size: 10pt; } /* Encabezado de tabla */
+                        .items-table td { font-size: 9pt; } /* Celdas de datos */
+
+                        .totals { width: 100%; margin-top: 20px; } /* Tabla de totales */
+                        .totals tr td { padding: 5px 0; } /* Celdas de totales */
+                        .totals .label { text-align: right; padding-right: 15px; color: #555; } /* Etiquetas de totales */
+                        .totals .amount { text-align: right; font-weight: bold; color: #333; font-size: 12pt; } /* Montos de totales */
+
+                        .footer { text-align: center; margin-top: 50px; font-size: 9pt; color: #999; } /* Pie de página */
+
+                        /* Estilos para el estado de la factura */
+                        .status { display: inline-block; padding: 4px 8px; border-radius: 5px; font-size: 9pt; font-weight: bold; margin-left: 10px; }
+                        .status-pagada { background-color: #d4edda; color: #155724; }
+                        .status-pendiente { background-color: #fff3cd; color: #856404; }
+                        .status-anulada { background-color: #f8d7da; color: #721c24; }
+
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <img src="' . $imageSrc . '" alt="Logo SaleSystem">
+                            <h1>SaleSystem</h1>
+                            <p>Factura de Venta a ' . htmlspecialchars($factura_pdf->cliente['nombre']) . '</p>
+                        </div>
+
+                        <div class="info-section">
+                            <div class="client-info">
+                                <h2>Cliente</h2>
+                                <p><strong>Código:</strong> ' . htmlspecialchars($factura_pdf->cliente['codigo']) . '</p>
+                                <p><strong>Nombre:</strong> ' . htmlspecialchars($factura_pdf->cliente['nombre']) . '</p>';
+                                if (!empty($factura_pdf->cliente['telefono'])) {
+                                    $html .= '<p><strong>Teléfono:</strong> ' . htmlspecialchars($factura_pdf->cliente['telefono']) . '</p>';
+                                }
+                                if (!empty($factura_pdf->cliente['email'])) {
+                                    $html .= '<p><strong>Email:</strong> ' . htmlspecialchars($factura_pdf->cliente['email']) . '</p>';
+                                }
+                                if (!empty($factura_pdf->cliente['direccion'])) {
+                                    $html .= '<p><strong>Dirección:</strong> ' . htmlspecialchars($factura_pdf->cliente['direccion']) . '</p>';
+                                }
+                $html .= '
+                            </div>
+                            <div class="invoice-info">
+                                <h2>Factura</h2>
+                                <p><strong>Número:</strong> ' . htmlspecialchars($factura_pdf->numero_factura) . '</p>
+                                <p><strong>Fecha:</strong> ' . htmlspecialchars(date('d/m/Y', strtotime($factura_pdf->fecha))) . '</p>
+                                <p><strong>Estado = </strong> <strong>' . htmlspecialchars(ucfirst($factura_pdf->estado)) . '</strong></p>
+                            </div>
+                        </div>
+
+                        <h2>Detalles del Pedido</h2>
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th style="text-align:center;">Cantidad</th>
+                                    <th style="text-align:right;">Precio Unitario</th>
+                                    <th style="text-align:right;">Total Línea</th>
+                                </tr>
+                            </thead>
+                            <tbody>';
+                            foreach ($factura_pdf->detalles as $detalle) {
+                                $html .= '
+                                <tr>
+                                    <td>' . htmlspecialchars($detalle['nombre_producto']) . '</td>
+                                    <td style="text-align:center;">' . htmlspecialchars($detalle['cantidad']) . '</td>
+                                    <td style="text-align:right;">RD$' . number_format($detalle['precio_unitario'], 2) . '</td>
+                                    <td style="text-align:right;">RD$' . number_format($detalle['total_linea'], 2) . '</td>
+                                </tr>';
+                            }
+                $html .= '
+                            </tbody>
+                        </table>
+
+                        <table class="totals">
+                            <tr>
+                                <td class="label">Subtotal:</td>
+                                <td class="amount">RD$' . number_format($factura_pdf->subtotal, 2) . '</td>
+                            </tr>
+                            <tr>
+                                <td class="label">Total a Pagar:</td>
+                                <td class="amount">RD$' . number_format($factura_pdf->total, 2) . '</td>
+                            </tr>
+                        </table>';
+
+                        if (!empty($factura_pdf->comentario)) {
+                            $html .= '
+                            <h2>Comentarios</h2>
+                            <p>' . htmlspecialchars($factura_pdf->comentario) . '</p>';
+                        }
+
+                $html .= '
+                        <div class="footer">
+                            <p>¡Gracias por su compra!</p>
+                            <p>SaleSystem - Sistema de Facturación</p>
+                            <p>Fecha de creación: ' . htmlspecialchars(date('d/m/Y H:i:s', strtotime($factura_pdf->created_at))) . '</p>
+                        </div>
+                    </div>
+                </body>
+                </html>';
+
+                $dompdf = new Dompdf\Dompdf();
+                $dompdf->loadHtml($html);
+                $dompdf->setPaper('A4', 'portrait');
+                $dompdf->render();
+                ob_clean(); // Limpiar cualquier salida antes de enviar el PDF
+                $dompdf->stream("factura_" . $factura_pdf->numero_factura . ".pdf", array("Attachment" => false));
+                exit;
+
+            } elseif(isset($_GET['id'])) {
+                error_log("DEBUG: Hitting get by ID block.");
                 // Buscar factura por ID
                 $id = $_GET['id'];
                 if($factura->findById($id)) {

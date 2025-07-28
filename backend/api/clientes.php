@@ -1,14 +1,16 @@
 <?php
-// Para Reporte de errores para desarrollo
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
+require_once __DIR__ . '/../../vendor/autoload.php'; // Autoload de Composer
 require_once '../utils/cors.php';
+
+setCorsHeaders();
+
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+
 require_once '../utils/response.php';
 require_once '../config/database.php';
 require_once '../models/Cliente.php';
-
-setCorsHeaders();
 
 $database = new Database();
 $db = $database->getConnection();
@@ -81,7 +83,7 @@ try {
             // Validar datos
             $cliente->validate();
             
-            // Verificar si el código ya existe
+            // Verificar si el código del cliente ya existe para no repetirlo
             $cliente_existente = new Cliente($db);
             if($cliente_existente->findByCodigo($cliente->codigo)) {
                 ApiResponse::badRequest("Ya existe un cliente con ese código");

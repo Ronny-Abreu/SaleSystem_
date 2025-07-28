@@ -178,7 +178,7 @@ export default function FacturaDetalle() {
 
                 {/* Botones para cambiar estado - Debajo del título en móvil */}
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {factura.estado !== "pagada" && (
+                  {factura.estado === "pendiente" && (
                     <button
                       onClick={() => cambiarEstado("pagada")}
                       disabled={actualizandoEstado}
@@ -189,18 +189,7 @@ export default function FacturaDetalle() {
                     </button>
                   )}
 
-                  {factura.estado !== "pendiente" && factura.estado !== "anulada" && (
-                    <button
-                      onClick={() => cambiarEstado("pendiente")}
-                      disabled={actualizandoEstado}
-                      className="btn-secondary flex items-center space-x-2 text-xs md:text-sm px-3 py-2"
-                    >
-                      <Clock size={14} />
-                      <span>Marcar Pendiente</span>
-                    </button>
-                  )}
-
-                  {factura.estado !== "anulada" && (
+                  {factura.estado === "pendiente" && (
                     <button
                       onClick={() => cambiarEstado("anulada")}
                       disabled={actualizandoEstado}
