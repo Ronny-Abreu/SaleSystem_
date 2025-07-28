@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/../../vendor/autoload.php'; // Autoload de Composer
+require_once __DIR__ . '/../vendor/autoload.php'; // Autoload de Composer
 require_once '../utils/cors.php';
 
 setCorsHeaders();
