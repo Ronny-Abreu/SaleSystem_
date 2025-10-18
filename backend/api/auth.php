@@ -1,17 +1,17 @@
 <?php
-// Configurar sesiones para que funcionen en producción
-ini_set('session.cookie_samesite', 'None');
-ini_set('session.cookie_secure', '1');
-ini_set('session.cookie_httponly', '1');
-
-session_start();
-
 require_once '../utils/cors.php';
 require_once '../utils/response.php';
 require_once '../config/database.php';
 require_once '../models/Usuario.php';
 
 setCorsHeaders();
+
+// Configurar sesiones para que funcionen en producción
+ini_set('session.cookie_samesite', 'None');
+ini_set('session.cookie_secure', '1');
+ini_set('session.cookie_httponly', '1');
+
+session_start();
 
 $database = new Database();
 $db = $database->getConnection();

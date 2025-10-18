@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["php83", "php83Packages.composer", "nodejs_18", "npm-9_x"]
+
+[phases.install]
+cmds = ["cd backend && composer install"]
+
+[phases.build]
+cmds = ["echo 'Build completed'"]
+
+[start]
+cmd = "cd backend && php -S 0.0.0.0:$PORT"

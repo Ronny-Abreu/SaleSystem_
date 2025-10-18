@@ -1,0 +1,16 @@
+RewriteEngine On
+
+# Redirigir peticiones API al backend
+RewriteCond %{REQUEST_URI} ^/api/(.*)$
+RewriteRule ^api/(.*)$ backend/api/$1 [L]
+
+# Redirigir peticiones del backend
+RewriteCond %{REQUEST_URI} ^/backend/(.*)$
+RewriteRule ^backend/(.*)$ backend/$1 [L]
+
+# Permitir archivos estáticos
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Redirigir todo lo demás al index del backend
+RewriteRule ^(.*)$ backend/index.php [L]

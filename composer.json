@@ -1,0 +1,16 @@
+{
+    "name": "salesystem/backend",
+    "description": "SaleSystem Backend API",
+    "type": "project",
+    "require": {
+        "dompdf/dompdf": "^3.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "": "backend/"
+        }
+    },
+    "config": {
+        "vendor-dir": "vendor"
+    }
+}
