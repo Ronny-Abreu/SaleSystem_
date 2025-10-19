@@ -10,6 +10,7 @@ import { useFacturas } from "@/hooks/useFacturas"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ClienteSearchModal } from "@/components/modals/cliente-search-modal"
 import { ProductoSearchModal } from "@/components/modals/producto-search-modal"
+import { buildBackendUrl } from "@/lib/config"
 import type { Cliente, Producto } from "@/lib/types"
 
 interface FacturaItem {
@@ -190,7 +191,7 @@ export default function NuevaFactura() {
       limpiarCarritoEnLocalStorage()
 
       // Abrir PDF en una nueva pestaña
-      const pdfUrl = `http://localhost/salesystem/backend/api/facturas.php?action=generate_pdf&id=${facturaCreada.id}`
+      const pdfUrl = buildBackendUrl(`api/facturas.php?action=generate_pdf&id=${facturaCreada.id}`)
       window.open(pdfUrl, "_blank")
 
       // Redirigir según el origen
