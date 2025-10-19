@@ -161,11 +161,11 @@ export function ClienteSearchModal({ isOpen, onClose, onSelectCliente }: Cliente
           <div className="relative">
             <button
               onClick={handleConfirmarSeleccion}
-              className={`relative md:px-4 md:py-2 w-10 h-10 md:w-auto md:h-auto rounded-full md:rounded-lg transition-all duration-200 flex items-center justify-center ${
+              className={`relative px-4 py-2 w-10 h-10 md:w-auto md:h-auto rounded-full md:rounded-lg transition-all duration-200 flex items-center justify-center whitespace-nowrap ${
                 clienteSeleccionado
                   ? "bg-blue-600 hover:bg-blue-700 text-white"
                   : "md:bg-blue-300 md:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white md:text-blue-100"
-              } ${!clienteSeleccionado ? "md:block" : ""} ${clienteSeleccionado || window.innerWidth < 768 ? "" : "md:opacity-60"}`}
+              } ${clienteSeleccionado || window.innerWidth < 768 ? "" : "md:opacity-60"}`}
               title="Elegir cliente"
             >
               <Check size={16} />
