@@ -221,12 +221,15 @@ export default function NuevaFactura() {
             {/* Header con botones*/}
             <div className="flex items-center justify-between mb-6">
               <button
-                onClick={handleVolver}
+                onClick={showPreview ? () => setShowPreview(false) : handleVolver}
                 className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft size={20} />
                 <span className="hidden md:inline">
-                  {vieneDesdeProductos ? "Volver a productos" : "Volver a facturas"}
+                  {showPreview 
+                    ? "Volver a factura actural" 
+                    : (vieneDesdeProductos ? "Volver a productos" : "Volver a facturas")
+                  }
                 </span>
                 <span className="md:hidden">Volver</span>
               </button>
