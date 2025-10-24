@@ -9,7 +9,11 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-.vendor/
+
+# vendor directories (PHP dependencies)
+/vendor/
+/backend/vendor/
+vendor/
 
 # testing
 /coverage
@@ -46,4 +50,3 @@ next-env.d.ts
 .env.local
 .env*.local
 .env
-/vendor
