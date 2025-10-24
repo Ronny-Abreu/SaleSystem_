@@ -3,21 +3,29 @@
 import { productosApi } from "@/lib/api"
 import { useState, useEffect } from "react"
 import type { Producto } from "@/lib/types"
+import { useAuthenticatedApi } from "./useAuthenticatedApi"
 
 export function useProductos(soloActivos?: boolean) {
   const [productos, setProductos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
   const fetchProductos = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await productosApi.getAll(soloActivos)
+      // Solo hacer fetch si está autenticado
+      if (!isAuthenticated) {
+        setLoading(false)
+        return
+      }
+
+      const response = await authenticatedRequest(() => productosApi.getAll(soloActivos))
 
       if (response.success) {
-        // Mapeando los datos para incluir la información de categoría con tipos correctos
+        // Mapeando los datos para incluir la información de categoría
         const productosConCategoria: Producto[] = response.data.map((item: any): Producto => {
 
           // Se va a crear el objeto categoria si existe información de categoría
@@ -66,9 +74,10 @@ export function useProductos(soloActivos?: boolean) {
 
   const crearProducto = async (producto: Omit<Producto, "id" | "created_at" | "updated_at">) => {
     try {
-      const response = await productosApi.create(producto)
+      if (!isAuthenticated) throw new Error("Usuario no autenticado")
+      const response = await authenticatedRequest(() => productosApi.create(producto))
       if (response.success) {
-        await fetchProductos() // Refrescar la lista
+        await fetchProductos()
         return response.data
       } else {
         throw new Error(response.message)
@@ -81,9 +90,10 @@ export function useProductos(soloActivos?: boolean) {
 
   const actualizarProducto = async (id: number, producto: Partial<Producto>) => {
     try {
-      const response = await productosApi.update(id, producto)
+      if (!isAuthenticated) throw new Error("Usuario no autenticado")
+      const response = await authenticatedRequest(() => productosApi.update(id, producto))
       if (response.success) {
-        await fetchProductos() // Refrescar la lista
+        await fetchProductos()
         return response.data
       } else {
         throw new Error(response.message)
@@ -95,7 +105,8 @@ export function useProductos(soloActivos?: boolean) {
 
   const eliminarProducto = async (id: number) => {
     try {
-      const response = await productosApi.delete(id)
+      if (!isAuthenticated) throw new Error("Usuario no autenticado")
+      const response = await authenticatedRequest(() => productosApi.delete(id))
       if (response.success) {
         await fetchProductos()
       } else {
@@ -107,8 +118,11 @@ export function useProductos(soloActivos?: boolean) {
   }
 
   useEffect(() => {
-    fetchProductos()
-  }, [soloActivos])
+    // Solo hacer fetch cuando la autenticación esté verificada
+    if (authChecked) {
+      fetchProductos()
+    }
+  }, [authChecked, isAuthenticated, soloActivos])
 
   return {
     productos,

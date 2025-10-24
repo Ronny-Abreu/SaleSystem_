@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/lib/config"
 import type { Cliente, Producto, Factura } from "@/lib/types"
+import { useAuth } from "@/contexts/auth-context"
 
 // Tipos para las respuestas de la API
 interface ApiResponse<T> {
