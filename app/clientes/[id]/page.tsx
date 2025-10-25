@@ -8,12 +8,14 @@ import Link from "next/link"
 import { useParams, useSearchParams } from "next/navigation"
 import { clientesApi, facturasApi } from "@/lib/api"
 import type { Cliente, Factura } from "@/lib/types"
+import { useAuthenticatedApi } from "@/hooks/useAuthenticatedApi"
 
 export default function DetalleCliente() {
   const params = useParams()
   const searchParams = useSearchParams()
   const success = searchParams.get("success")
   const clienteId = Number(params.id)
+  const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
   const [cliente, setCliente] = useState<Cliente | null>(null)
   const [facturas, setFacturas] = useState<Factura[]>([])
@@ -41,8 +43,14 @@ export default function DetalleCliente() {
         setLoading(true)
         setError(null)
 
+        if (!isAuthenticated) {
+          setLoading(false)
+          setLoadingFacturas(false)
+          return
+        }
+
         // Cargar cliente
-        const clienteResponse = await clientesApi.getById(clienteId)
+        const clienteResponse = await authenticatedRequest(() => clientesApi.getById(clienteId))
         if (clienteResponse.success) {
           setCliente(clienteResponse.data)
         } else {
@@ -52,7 +60,7 @@ export default function DetalleCliente() {
 
         // Cargar facturas del cliente
         setLoadingFacturas(true)
-        const facturasResponse = await facturasApi.getAll()
+        const facturasResponse = await authenticatedRequest(() => facturasApi.getAll())
         if (facturasResponse.success) {
           const facturasCliente = facturasResponse.data.filter((factura: Factura) => factura.cliente_id === clienteId)
           setFacturas(facturasCliente)
@@ -65,10 +73,10 @@ export default function DetalleCliente() {
       }
     }
 
-    if (clienteId) {
+    if (clienteId && authChecked) {
       cargarDatos()
     }
-  }, [clienteId])
+  }, [clienteId, authChecked, isAuthenticated])
 
   if (loading) {
     return (
