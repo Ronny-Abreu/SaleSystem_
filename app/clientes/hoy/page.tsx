@@ -7,6 +7,7 @@ import { Users, Calendar, TrendingUp, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { clientesApi } from "@/lib/api"
 import type { Cliente } from "@/lib/types"
+import { useAuthenticatedApi } from "@/hooks/useAuthenticatedApi"
 
 export default function ClientesDelDia() {
   const [clientesHoy, setClientesHoy] = useState<Cliente[]>([])
@@ -14,13 +15,19 @@ export default function ClientesDelDia() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [vistaActual, setVistaActual] = useState<"hoy" | "todos">("hoy")
+  const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
   const fetchClientes = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await clientesApi.getAll()
+      if (!isAuthenticated) {
+        setLoading(false)
+        return
+      }
+
+      const response = await authenticatedRequest(() => clientesApi.getAll())
 
       if (response.success) {
         const hoy = new Date().toISOString().split("T")[0]
@@ -44,8 +51,10 @@ export default function ClientesDelDia() {
   }
 
   useEffect(() => {
-    fetchClientes()
-  }, [])
+    if (authChecked) {
+      fetchClientes()
+    }
+  }, [authChecked, isAuthenticated])
 
   const clientesAMostrar = vistaActual === "hoy" ? clientesHoy : todosClientes
 

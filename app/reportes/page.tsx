@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { BarChart3, Calendar, DollarSign, FileText, TrendingUp } from "lucide-react"
 import { facturasApi } from "@/lib/api"
+import { useAuthenticatedApi } from "@/hooks/useAuthenticatedApi"
 
 interface ReporteData {
   mes: string
@@ -23,11 +24,17 @@ export default function ReportesPage() {
     const hoy = new Date()
     return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`
   })
+  const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
   const fetchReportes = async () => {
     try {
       setLoading(true)
       setError(null)
+
+      if (!isAuthenticated) {
+        setLoading(false)
+        return
+      }
 
       // Obtener facturas del mes seleccionado
       const [año, mes] = mesSeleccionado.split("-")
@@ -35,10 +42,10 @@ export default function ReportesPage() {
       const ultimoDia = new Date(Number.parseInt(año), Number.parseInt(mes), 0).getDate()
       const fechaFin = `${año}-${mes}-${ultimoDia}`
 
-      const response = await facturasApi.getAll({
+      const response = await authenticatedRequest(() => facturasApi.getAll({
         fecha_desde: fechaInicio,
         fecha_hasta: fechaFin,
-      })
+      }))
 
       if (response.success) {
         const facturas = response.data
@@ -73,8 +80,10 @@ export default function ReportesPage() {
   }
 
   useEffect(() => {
-    fetchReportes()
-  }, [mesSeleccionado])
+    if (authChecked) {
+      fetchReportes()
+    }
+  }, [authChecked, isAuthenticated, mesSeleccionado])
 
   const formatCurrency = (amount: number) => {
     return `RD$${amount.toLocaleString("es-DO", { minimumFractionDigits: 2 })}`

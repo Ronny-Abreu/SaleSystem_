@@ -2,6 +2,7 @@
 
 import { facturasApi } from "@/lib/api"
 import { useState, useEffect } from "react"
+import { useAuthenticatedApi } from "./useAuthenticatedApi"
 
 export interface Notificacion {
   id: string
@@ -17,13 +18,19 @@ export function useNotificaciones() {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [loading, setLoading] = useState(true)
   const [cantidadNoLeidas, setCantidadNoLeidas] = useState(0)
+  const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
   const fetchNotificaciones = async () => {
     try {
       setLoading(true)
 
+      if (!isAuthenticated) {
+        setLoading(false)
+        return
+      }
+
       // Obtener facturas pendientes
-      const facturasPendientes = await facturasApi.getAll({ estado: "pendiente" })
+      const facturasPendientes = await authenticatedRequest(() => facturasApi.getAll({ estado: "pendiente" }))
 
       const notificacionesFacturas: Notificacion[] = facturasPendientes.success
         ? facturasPendientes.data.map((factura: any) => ({
@@ -57,13 +64,14 @@ export function useNotificaciones() {
   }
 
   useEffect(() => {
-    fetchNotificaciones()
+    if (authChecked) {
+      fetchNotificaciones()
 
-    // Actualizar cada 5 minutos
-    const interval = setInterval(fetchNotificaciones, 5 * 60 * 1000)
+      const interval = setInterval(fetchNotificaciones, 5 * 60 * 1000)
 
-    return () => clearInterval(interval)
-  }, [])
+      return () => clearInterval(interval)
+    }
+  }, [authChecked, isAuthenticated])
 
   return {
     notificaciones,

@@ -2,15 +2,23 @@
 
 import { clientesApi } from "@/lib/api"
 import { useState, useEffect } from "react"
+import { useAuthenticatedApi } from "./useAuthenticatedApi"
 
 export function useCodigoCliente() {
   const [siguienteCodigo, setSiguienteCodigo] = useState("")
   const [loading, setLoading] = useState(true)
+  const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
   const generarSiguienteCodigo = async () => {
     try {
       setLoading(true)
-      const response = await clientesApi.getAll()
+      
+      if (!isAuthenticated) {
+        setLoading(false)
+        return
+      }
+
+      const response = await authenticatedRequest(() => clientesApi.getAll())
 
       if (response.success) {
         const clientes = response.data
@@ -41,8 +49,10 @@ export function useCodigoCliente() {
   }
 
   useEffect(() => {
-    generarSiguienteCodigo()
-  }, [])
+    if (authChecked) {
+      generarSiguienteCodigo()
+    }
+  }, [authChecked, isAuthenticated])
 
   return {
     siguienteCodigo,
