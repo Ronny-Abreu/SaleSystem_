@@ -16,6 +16,7 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   loading: boolean
+  authChecked: boolean
   login: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
   checkAuth: () => Promise<void>
@@ -26,12 +27,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authChecked, setAuthChecked] = useState(false)
 
   const checkAuth = async () => {
     try {
       const response = await fetch(buildApiUrl("auth.php"), {
         method: "GET",
-        credentials: "include", // Importante para sesiones
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -52,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
     } finally {
       setLoading(false)
+      setAuthChecked(true)
     }
   }
 
@@ -95,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     isAuthenticated: !!user,
     loading,
+    authChecked,
     login,
     logout,
     checkAuth,

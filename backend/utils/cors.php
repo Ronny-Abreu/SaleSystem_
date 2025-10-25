@@ -11,7 +11,6 @@ function setCorsHeaders() {
         //Rama main
         'https://sale-system-liard.vercel.app',
 
-        // Desarrollo en rama fixLogin producción pruebas antes de producción rama main
         'https://sale-system-ronny-de-leons-projects.vercel.app'
     ];
     

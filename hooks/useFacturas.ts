@@ -3,6 +3,7 @@
 import { facturasApi } from "@/lib/api"
 import type { Factura } from "@/lib/types"
 import { useState, useEffect } from "react"
+import { useAuthenticatedApi } from "./useAuthenticatedApi"
 
 export function useFacturas(filtros?: {
   fecha_desde?: string
@@ -12,12 +13,20 @@ export function useFacturas(filtros?: {
   const [facturas, setFacturas] = useState<Factura[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
   const fetchFacturas = async () => {
     try {
       setLoading(true)
       setError(null)
-      const response = await facturasApi.getAll(filtros)
+      
+      // Solo hacer fetch si está autenticado
+      if (!isAuthenticated) {
+        setLoading(false)
+        return
+      }
+
+      const response = await authenticatedRequest(() => facturasApi.getAll(filtros))
 
       if (response.success) {
         setFacturas(response.data)
@@ -45,7 +54,8 @@ export function useFacturas(filtros?: {
     }>
   }) => {
     try {
-      const response = await facturasApi.create(factura)
+      if (!isAuthenticated) throw new Error("Usuario no autenticado")
+      const response = await authenticatedRequest(() => facturasApi.create(factura))
       if (response.success) {
         await fetchFacturas()
         return response.data
@@ -59,7 +69,8 @@ export function useFacturas(filtros?: {
 
   const actualizarEstado = async (id: number, estado: string) => {
     try {
-      const response = await facturasApi.updateEstado(id, estado)
+      if (!isAuthenticated) throw new Error("Usuario no autenticado")
+      const response = await authenticatedRequest(() => facturasApi.updateEstado(id, estado))
       if (response.success) {
         await fetchFacturas()
       } else {
@@ -71,8 +82,11 @@ export function useFacturas(filtros?: {
   }
 
   useEffect(() => {
-    fetchFacturas()
-  }, [filtros?.fecha_desde, filtros?.fecha_hasta, filtros?.estado])
+    // Solo hacer fetch cuando la autenticación esté verificada
+    if (authChecked) {
+      fetchFacturas()
+    }
+  }, [authChecked, isAuthenticated, filtros?.fecha_desde, filtros?.fecha_hasta, filtros?.estado])
 
   return {
     facturas,
