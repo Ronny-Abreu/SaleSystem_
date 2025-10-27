@@ -6,15 +6,17 @@ import { useState, useEffect } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, Save, User } from "lucide-react"
-import Link from "next/link"
 import { useClientes } from "@/hooks/useClientes"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useCodigoCliente } from "@/hooks/useCodigoCliente"
 
 export default function NuevoCliente() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { crearCliente } = useClientes()
   const { siguienteCodigo, loading: loadingCodigo } = useCodigoCliente()
+  
+  const returnTo = searchParams.get("returnTo")
 
   const [formData, setFormData] = useState({
     codigo: "",
@@ -54,8 +56,15 @@ export default function NuevoCliente() {
         throw new Error("El nombre del cliente es requerido")
       }
 
-      await crearCliente(formData)
-      router.push("/clientes?success=true")
+      const clienteCreado = await crearCliente(formData)
+      
+      // redirigir a la factura con el ID del cliente creado
+      if (returnTo && clienteCreado && clienteCreado.id) {
+        router.push(`${returnTo}?clienteId=${clienteCreado.id}`)
+      } else {
+        // redirigir a la página de clientes
+        router.push("/clientes?success=true")
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
     } finally {
@@ -74,13 +83,13 @@ export default function NuevoCliente() {
           <div className="max-w-2xl mx-auto">
             {/* Header con botones */}
             <div className="flex items-center justify-between mb-6">
-              <Link
-                href="/clientes"
+              <button
+                onClick={() => returnTo ? router.push(returnTo) : router.push("/clientes")}
                 className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft size={20} />
-                <span>Volver a clientes</span>
-              </Link>
+                <span>{returnTo ? "Volver" : "Volver a clientes"}</span>
+              </button>
             </div>
 
             {/* Formulario */}
@@ -167,9 +176,12 @@ export default function NuevoCliente() {
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-6">
-                  <Link href="/clientes" className="px-6 py-2 text-slate-600 hover:text-slate-800 transition-colors">
+                  <button
+                    onClick={() => returnTo ? router.push(returnTo) : router.push("/clientes")}
+                    className="px-6 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+                  >
                     Cancelar
-                  </Link>
+                  </button>
                   <button type="submit" disabled={loading} className="btn-primary flex items-center space-x-2">
                     <Save size={16} />
                     <span>{loading ? "Guardando..." : "Guardar Cliente"}</span>

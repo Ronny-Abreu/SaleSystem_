@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Plus, Minus, Printer, Save, ArrowLeft, Calculator, Package, Search, Info, AlertCircle } from "lucide-react"
-import Link from "next/link"
 import { useProductos } from "@/hooks/useProductos"
 import { useFacturas } from "@/hooks/useFacturas"
+import { useClientes } from "@/hooks/useClientes"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ClienteSearchModal } from "@/components/modals/cliente-search-modal"
 import { ProductoSearchModal } from "@/components/modals/producto-search-modal"
@@ -27,6 +27,7 @@ export default function NuevaFactura() {
   const searchParams = useSearchParams()
   const { productos, loading: loadingProductos } = useProductos(true) // Solo productos activos
   const { crearFactura } = useFacturas()
+  const { buscarPorId } = useClientes()
 
   const [cliente, setCliente] = useState<Cliente | null>(null)
   const [items, setItems] = useState<FacturaItem[]>([])
@@ -40,6 +41,29 @@ export default function NuevaFactura() {
 
   // Detectar si viene desde productos
   const vieneDesdeProductos = searchParams.get("desde") === "productos"
+  
+  // Obtener clienteId de la URL si viene de creación de cliente
+  const clienteIdFromUrl = searchParams.get("clienteId")
+
+  // Efecto para cargar cliente si viene desde la creación de cliente
+  useEffect(() => {
+    const loadClienteFromUrl = async () => {
+      if (clienteIdFromUrl && !cliente) {
+        try {
+          const clienteCargado = await buscarPorId(Number.parseInt(clienteIdFromUrl))
+          if (clienteCargado) {
+            setCliente(clienteCargado)
+
+            const newUrl = window.location.pathname
+            window.history.replaceState({}, "", newUrl)
+          }
+        } catch (err) {
+          console.error("Error cargando cliente:", err)
+        }
+      }
+    }
+    loadClienteFromUrl()
+  }, [clienteIdFromUrl, cliente, buscarPorId])
 
   // Efecto para precargar productos del carrito si viene desde la pantalla de productos
   useEffect(() => {
@@ -311,14 +335,14 @@ export default function NuevaFactura() {
                       <h3 className="text-lg font-semibold text-slate-900">Información del Cliente</h3>
                     </div>
 
-                    {/* Botones de info y buscar */}
+                    {/* Botones de info - buscar - crear cliente */}
                     <div className="flex items-center space-x-2 md:order-last">
                       <div className="group relative">
                         <button className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
                           <Info size={16} />
                         </button>
                         <div className="absolute -left-5 md:-left-4 top-8 w-64 p-3 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                          Recuerda que debes tener el cliente registrado para solo tener que buscarlo en la lupa y se autocomplete con su código y nombre correspondiente.
+                          Elije un cliente registrado, también puedes crearlo rápidamente en '<b>+</b>' y se autocompletará con su código y nombre correspondiente.
                         </div>
                       </div>
 
@@ -329,6 +353,16 @@ export default function NuevaFactura() {
                         <Search size={16} />
                         <span>Buscar Cliente</span>
                       </button>
+
+                      <button
+                        onClick={() => router.push('/clientes/nuevo?returnTo=/facturas/nueva')}
+                        className="inline-flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors text-sm"
+                      >
+                        <Plus size={16} />
+                        <span>Crear Cliente</span>
+                      </button>
+
+                      
                     </div>
                   </div>
 
