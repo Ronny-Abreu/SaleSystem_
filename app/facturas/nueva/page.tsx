@@ -336,7 +336,7 @@ export default function NuevaFactura() {
                     </div>
 
                     {/* Botones de info - buscar - crear cliente */}
-                    <div className="flex items-center space-x-2 md:order-last">
+                    <div className="flex items-center space-x-2 md:order-last flex-wrap">
                       <div className="group relative">
                         <button className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
                           <Info size={16} />
@@ -348,18 +348,19 @@ export default function NuevaFactura() {
 
                       <button
                         onClick={() => setShowClienteModal(true)}
-                        className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors text-sm"
+                        className="inline-flex items-center space-x-1.5 px-2 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors text-sm whitespace-nowrap"
                       >
-                        <Search size={16} />
-                        <span>Buscar Cliente</span>
+                        <Search size={14} />
+                        <span className="text-xs">Buscar Cliente</span>
                       </button>
 
                       <button
                         onClick={() => router.push('/clientes/nuevo?returnTo=/facturas/nueva')}
-                        className="inline-flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors text-sm"
+                        className="inline-flex items-center space-x-1.5 px-2 py-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors text-sm whitespace-nowrap"
                       >
-                        <Plus size={16} />
-                        <span>Crear Cliente</span>
+                        <Plus size={14} />
+                        <span className="text-xs md:hidden">Crear</span>
+                        <span className="text-xs hidden md:inline">Crear Cliente</span>
                       </button>
 
                       

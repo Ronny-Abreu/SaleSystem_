@@ -175,16 +175,23 @@ export default function NuevoCliente() {
                   />
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-6">
+                <div className="flex flex-nowrap justify-end items-center gap-3 pt-6">
                   <button
                     onClick={() => returnTo ? router.push(returnTo) : router.push("/clientes")}
-                    className="px-6 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+                    className="px-6 py-2 text-slate-600 hover:text-slate-800 transition-colors whitespace-nowrap"
                   >
                     Cancelar
                   </button>
-                  <button type="submit" disabled={loading} className="btn-primary flex items-center space-x-2">
-                    <Save size={16} />
-                    <span>{loading ? "Guardando..." : "Guardar Cliente"}</span>
+
+                  <button 
+                    type="submit" 
+                    disabled={loading} 
+                    className="btn-primary flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <Save size={16} className="flex-shrink-0" />
+                    <span>
+                      {loading ? "Guardando..." : "Guardar Cliente"}
+                    </span>
                   </button>
                 </div>
               </form>
