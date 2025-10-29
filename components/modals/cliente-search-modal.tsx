@@ -180,11 +180,11 @@ export function ClienteSearchModal({ isOpen, onClose, onSelectCliente }: Cliente
 
             {/* Tooltip de error para desktop */}
             {showTooltip && (
-              <div className="absolute bottom-full left-2/2 transform -translate-x-1/2 mb-2 bg-red-600 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-10 whitespace-nowrap">
+              <div className="absolute bottom-full left-3/1 transform -translate-x-1/2 mb-2 bg-red-600 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-10 whitespace-nowrap">
                 <span>Elige un cliente</span>
 
                 {/* Flecha del tooltip */}
-                <div className="absolute top-full left-2/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
+                <div className="absolute top-full left-1/2   transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
               </div>
             )}
           </div>

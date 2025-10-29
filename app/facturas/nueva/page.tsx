@@ -563,7 +563,7 @@ export default function NuevaFactura() {
               /* Vista previa de la factura */
               <div className="card max-w-2xl mx-auto factura-print">
                 <div className="text-center mb-6">
-                  <h1 className="text-2xl font-bold text-slate-900">La Rubia</h1>
+                  <img src="/SaleSystemLOGO.png" alt="SaleSystem Logo" className="mx-auto h-24 w-auto mb-2" />
                   <p className="text-slate-600">Sistema de Facturación</p>
                   <div className="mt-4 p-2 bg-slate-100 rounded-lg inline-block">
                     <p className="font-semibold text-slate-800">Factura: {numeroFactura}</p>
@@ -632,14 +632,6 @@ export default function NuevaFactura() {
                 <div className="mt-8 text-center text-sm text-slate-500">
                   <p>¡Gracias por su compra!</p>
                   <p>La Rubia - Sistema de Facturación</p>
-                </div>
-
-                {/* Botón de imprimir solo visible en vista previa */}
-                <div className="mt-6 text-center no-print">
-                  <button onClick={() => window.print()} className="btn-primary flex items-center space-x-2 mx-auto">
-                    <Printer size={16} />
-                    <span>Imprimir Factura</span>
-                  </button>
                 </div>
               </div>
             )}
