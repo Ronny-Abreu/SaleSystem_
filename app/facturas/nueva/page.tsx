@@ -359,7 +359,7 @@ export default function NuevaFactura() {
                         className="inline-flex items-center space-x-1.5 px-2 py-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors text-sm whitespace-nowrap"
                       >
                         <Plus size={14} />
-                        <span className="text-xs md:hidden">Crear</span>
+                        <span className="text-xs md:hidden">Crear Cliente</span>
                         <span className="text-xs hidden md:inline">Crear Cliente</span>
                       </button>
 
