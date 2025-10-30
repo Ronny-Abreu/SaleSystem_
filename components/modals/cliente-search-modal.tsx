@@ -161,23 +161,30 @@ export function ClienteSearchModal({ isOpen, onClose, onSelectCliente }: Cliente
           <div className="relative">
             <button
               onClick={handleConfirmarSeleccion}
-              className={`relative px-4 py-2 w-10 h-10 md:w-auto md:h-auto rounded-full md:rounded-lg transition-all duration-200 flex items-center justify-center whitespace-nowrap ${
+              className={`relative px-2 py-2 w-10 h-10 md:w-auto md:h-auto rounded-full md:rounded-lg transition-all duration-200 flex items-center justify-center whitespace-nowrap ${
                 clienteSeleccionado
                   ? "bg-blue-600 hover:bg-blue-700 text-white"
                   : "md:bg-blue-300 md:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white md:text-blue-100"
               } ${clienteSeleccionado || window.innerWidth < 768 ? "" : "md:opacity-60"}`}
               title="Elegir cliente"
             >
-              <Check size={16} />
+              {/* Botón Elegir cliente - Mobile */}
+              <span className="md:hidden">
+                <Check size={20} />
+              </span>
+              <span className="hidden md:inline">
+                <Check size={16} />
+              </span>
               <span className="hidden md:inline md:ml-2">Elegir cliente</span>
             </button>
 
             {/* Tooltip de error para desktop */}
             {showTooltip && (
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-red-600 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-10 whitespace-nowrap">
-                <span>Debe seleccionar un cliente</span>
+              <div className="absolute bottom-full left-3/1 transform -translate-x-1/2 mb-2 bg-red-600 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-10 whitespace-nowrap">
+                <span>Elige un cliente</span>
+
                 {/* Flecha del tooltip */}
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
+                <div className="absolute top-full left-1/2   transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-red-600"></div>
               </div>
             )}
           </div>

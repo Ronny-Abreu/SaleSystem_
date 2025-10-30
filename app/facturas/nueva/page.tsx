@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Plus, Minus, Printer, Save, ArrowLeft, Calculator, Package, Search, Info, AlertCircle } from "lucide-react"
-import Link from "next/link"
 import { useProductos } from "@/hooks/useProductos"
 import { useFacturas } from "@/hooks/useFacturas"
+import { useClientes } from "@/hooks/useClientes"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ClienteSearchModal } from "@/components/modals/cliente-search-modal"
 import { ProductoSearchModal } from "@/components/modals/producto-search-modal"
@@ -27,6 +27,7 @@ export default function NuevaFactura() {
   const searchParams = useSearchParams()
   const { productos, loading: loadingProductos } = useProductos(true) // Solo productos activos
   const { crearFactura } = useFacturas()
+  const { buscarPorId } = useClientes()
 
   const [cliente, setCliente] = useState<Cliente | null>(null)
   const [items, setItems] = useState<FacturaItem[]>([])
@@ -40,6 +41,29 @@ export default function NuevaFactura() {
 
   // Detectar si viene desde productos
   const vieneDesdeProductos = searchParams.get("desde") === "productos"
+  
+  // Obtener clienteId de la URL si viene de creación de cliente
+  const clienteIdFromUrl = searchParams.get("clienteId")
+
+  // Efecto para cargar cliente si viene desde la creación de cliente
+  useEffect(() => {
+    const loadClienteFromUrl = async () => {
+      if (clienteIdFromUrl && !cliente) {
+        try {
+          const clienteCargado = await buscarPorId(Number.parseInt(clienteIdFromUrl))
+          if (clienteCargado) {
+            setCliente(clienteCargado)
+
+            const newUrl = window.location.pathname
+            window.history.replaceState({}, "", newUrl)
+          }
+        } catch (err) {
+          console.error("Error cargando cliente:", err)
+        }
+      }
+    }
+    loadClienteFromUrl()
+  }, [clienteIdFromUrl, cliente, buscarPorId])
 
   // Efecto para precargar productos del carrito si viene desde la pantalla de productos
   useEffect(() => {
@@ -311,24 +335,35 @@ export default function NuevaFactura() {
                       <h3 className="text-lg font-semibold text-slate-900">Información del Cliente</h3>
                     </div>
 
-                    {/* Botones de info y buscar */}
-                    <div className="flex items-center space-x-2 md:order-last">
+                    {/* Botones de info - buscar - crear cliente */}
+                    <div className="flex items-center space-x-2 md:order-last flex-wrap">
                       <div className="group relative">
                         <button className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
                           <Info size={16} />
                         </button>
                         <div className="absolute -left-5 md:-left-4 top-8 w-64 p-3 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                          Recuerda que debes tener el cliente registrado para solo tener que buscarlo en la lupa y se autocomplete con su código y nombre correspondiente.
+                          Elije un cliente registrado, también puedes crearlo rápidamente en '<b>+</b>' y se autocompletará con su código y nombre correspondiente.
                         </div>
                       </div>
 
                       <button
                         onClick={() => setShowClienteModal(true)}
-                        className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors text-sm"
+                        className="inline-flex items-center space-x-1.5 px-2 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors text-sm whitespace-nowrap"
                       >
-                        <Search size={16} />
-                        <span>Buscar Cliente</span>
+                        <Search size={14} />
+                        <span className="text-xs">Buscar Cliente</span>
                       </button>
+
+                      <button
+                        onClick={() => router.push('/clientes/nuevo?returnTo=/facturas/nueva')}
+                        className="inline-flex items-center space-x-1.5 px-2 py-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors text-sm whitespace-nowrap"
+                      >
+                        <Plus size={14} />
+                        <span className="text-xs md:hidden">Crear Cliente</span>
+                        <span className="text-xs hidden md:inline">Crear Cliente</span>
+                      </button>
+
+                      
                     </div>
                   </div>
 
@@ -528,7 +563,7 @@ export default function NuevaFactura() {
               /* Vista previa de la factura */
               <div className="card max-w-2xl mx-auto factura-print">
                 <div className="text-center mb-6">
-                  <h1 className="text-2xl font-bold text-slate-900">La Rubia</h1>
+                  <img src="/SaleSystemLOGO.png" alt="SaleSystem Logo" className="mx-auto h-24 w-auto mb-2" />
                   <p className="text-slate-600">Sistema de Facturación</p>
                   <div className="mt-4 p-2 bg-slate-100 rounded-lg inline-block">
                     <p className="font-semibold text-slate-800">Factura: {numeroFactura}</p>
@@ -597,14 +632,6 @@ export default function NuevaFactura() {
                 <div className="mt-8 text-center text-sm text-slate-500">
                   <p>¡Gracias por su compra!</p>
                   <p>La Rubia - Sistema de Facturación</p>
-                </div>
-
-                {/* Botón de imprimir solo visible en vista previa */}
-                <div className="mt-6 text-center no-print">
-                  <button onClick={() => window.print()} className="btn-primary flex items-center space-x-2 mx-auto">
-                    <Printer size={16} />
-                    <span>Imprimir Factura</span>
-                  </button>
                 </div>
               </div>
             )}
