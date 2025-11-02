@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { ArrowLeft, Edit, Phone, Mail, MapPin, Calendar, FileText, Eye, AlertTriangle } from "lucide-react"
+import { ArrowLeft, Edit, Phone, Mail, MapPin, Calendar, FileText, Eye, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react"
 import Link from "next/link"
 import { useParams, useSearchParams } from "next/navigation"
 import { clientesApi, facturasApi } from "@/lib/api"
@@ -14,6 +14,7 @@ export default function DetalleCliente() {
   const params = useParams()
   const searchParams = useSearchParams()
   const success = searchParams.get("success")
+  const fromClientesHoy = searchParams.get("fromClientesHoy") === "true"
   const clienteId = Number(params.id)
   const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
@@ -23,6 +24,28 @@ export default function DetalleCliente() {
   const [loadingFacturas, setLoadingFacturas] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [ordenFecha, setOrdenFecha] = useState<"asc" | "desc">("desc") // desc = más recientes primero, asc = más antiguas primero
+  const [filtroHoy, setFiltroHoy] = useState(fromClientesHoy) // Activar filtro si viene desde clientes del día
+
+  // Filtrar facturas por día de hoy si el filtro está activo
+  const facturasFiltradas = useMemo(() => {
+    if (!filtroHoy) return facturas
+    
+    const hoy = new Date().toISOString().split("T")[0]
+    return facturas.filter((factura) => {
+      const fechaFactura = new Date(factura.fecha).toISOString().split("T")[0]
+      return fechaFactura === hoy
+    })
+  }, [facturas, filtroHoy])
+
+  // Ordenar facturas por fecha
+  const facturasOrdenadas = useMemo(() => {
+    return [...facturasFiltradas].sort((a, b) => {
+      const fechaA = new Date(a.fecha).getTime()
+      const fechaB = new Date(b.fecha).getTime()
+      return ordenFecha === "desc" ? fechaB - fechaA : fechaA - fechaB
+    })
+  }, [facturasFiltradas, ordenFecha])
 
   // Calcular estadísticas
   const totalFacturas = facturas.length
@@ -101,7 +124,7 @@ export default function DetalleCliente() {
           <main className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <p className="text-red-600 mb-4">{error}</p>
-              <Link href="/clientes" className="btn-primary">
+              <Link href={fromClientesHoy ? "/clientes/hoy" : "/clientes"} className="btn-primary">
                 Volver a Clientes
               </Link>
             </div>
@@ -131,11 +154,13 @@ export default function DetalleCliente() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-2 md:space-x-3">
                 <Link
-                  href="/clientes"
+                  href={fromClientesHoy ? "/clientes/hoy" : "/clientes"}
                   className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
                 >
                   <ArrowLeft size={20} />
-                  <span className="hidden md:inline">Volver a clientes</span>
+                  <span className="hidden md:inline">
+                    {fromClientesHoy ? "Volver a clientes del día" : "Volver a clientes"}
+                  </span>
                 </Link>
 
                 <Link
@@ -158,7 +183,7 @@ export default function DetalleCliente() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Información del Cliente */}
-              <div className="lg:col-span-1">
+              <div className="lg:col-span-1 order-1 lg:order-1">
                 <div className="card">
                   <div className="mb-6">
                     {/* Header responsive */}
@@ -240,58 +265,40 @@ export default function DetalleCliente() {
                     </div>
                   </div>
                 </div>
-
-                {/* Estadísticas Rápidas */}
-                <div className="card mt-6">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Resumen de Cuenta</h3>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Total Facturas</span>
-                      <span className="font-semibold text-slate-900">{totalFacturas}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Total Pagado</span>
-                      <span className="font-semibold text-green-600">RD${totalPagado.toLocaleString()}</span>
-                    </div>
-
-                    {totalDeuda > 0 && (
-                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <AlertTriangle size={16} className="text-red-500" />
-                          <span className="text-red-700 font-medium">Deuda Pendiente</span>
-                        </div>
-                        <span className="font-bold text-red-600">RD${totalDeuda.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {facturasPendientes.length > 0 && (
-                      <div className="text-sm text-red-600">
-                        {facturasPendientes.length} factura{facturasPendientes.length !== 1 ? "s" : ""} pendiente
-                        {facturasPendientes.length !== 1 ? "s" : ""}
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* Facturas del Cliente */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 order-2 lg:order-2">
                 <div className="card">
                   <div className="mb-6">
-                    <div>
-                      <h2 className="text-xl font-semibold text-slate-900">Historial de Facturas</h2>
-                      <p className="text-slate-600">Todas las facturas asociadas a este cliente</p>
-
-                      {/* Indicador de deuda */}
-                      {totalDeuda > 0 && (
-                        <div className="mt-3 md:mt-2">
-                          <div className="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
-                            Tiene deuda pendiente
-                          </div>
+                    <div className="flex items-start justify-between gap-3 mb-2 flex-wrap sm:flex-nowrap">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <h2 className="text-xl font-semibold text-slate-900">Historial de Facturas</h2>
+                          <button
+                            onClick={() => setFiltroHoy(!filtroHoy)}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 flex-shrink-0 ${
+                              filtroHoy
+                                ? "bg-blue-600 text-white hover:bg-blue-700 animate-breathing"
+                                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                            }`}
+                          >
+                            De hoy
+                          </button>
                         </div>
-                      )}
+                        <p className="text-slate-600 text-sm">
+                          {filtroHoy ? "Facturas del día de hoy" : "Todas las facturas asociadas a este cliente"}
+                        </p>
+
+                        {/* Indicador de deuda */}
+                        {totalDeuda > 0 && (
+                          <div className="mt-3 md:mt-2">
+                            <div className="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
+                              Tiene deuda pendiente
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -300,13 +307,28 @@ export default function DetalleCliente() {
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
                       <p className="text-slate-600 mt-2">Cargando facturas...</p>
                     </div>
-                  ) : facturas.length > 0 ? (
+                  ) : facturasOrdenadas.length > 0 ? (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-slate-200">
                             <th className="text-left py-3 px-2 md:px-4 font-semibold text-slate-700 text-sm">Número</th>
-                            <th className="text-left py-3 px-2 md:px-4 font-semibold text-slate-700 text-sm">Fecha</th>
+                            <th className="text-left py-3 px-2 md:px-4 font-semibold text-slate-700 text-sm">
+                              <div className="flex items-center space-x-2">
+                                <span>Fecha</span>
+                                <button
+                                  onClick={() => setOrdenFecha(ordenFecha === "desc" ? "asc" : "desc")}
+                                  className="p-1 hover:bg-slate-100 rounded transition-colors"
+                                  title={ordenFecha === "desc" ? "Ordenar: más antiguas primero" : "Ordenar: más recientes primero"}
+                                >
+                                  {ordenFecha === "desc" ? (
+                                    <ArrowUp size={16} className="text-slate-600" />
+                                  ) : (
+                                    <ArrowDown size={16} className="text-slate-600" />
+                                  )}
+                                </button>
+                              </div>
+                            </th>
                             <th className="text-right py-3 px-2 md:px-4 font-semibold text-slate-700 text-sm">Total</th>
                             <th className="text-center py-3 px-2 md:px-4 font-semibold text-slate-700 text-sm">
                               Estado
@@ -317,7 +339,7 @@ export default function DetalleCliente() {
                           </tr>
                         </thead>
                         <tbody>
-                          {facturas.map((factura) => (
+                          {facturasOrdenadas.map((factura) => (
                             <tr key={factura.id} className="border-b border-slate-100 hover:bg-slate-50">
                               <td
                                 className={`py-3 px-2 md:px-4 font-medium text-sm ${
@@ -361,17 +383,59 @@ export default function DetalleCliente() {
                   ) : (
                     <div className="text-center py-8 text-slate-500">
                       <FileText size={48} className="mx-auto mb-4 text-slate-300" />
-                      <p>No hay facturas registradas</p>
-                      <p className="text-sm mb-4">Este cliente aún no tiene facturas asociadas</p>
-                      <Link
-                        href={`/facturas/nueva?cliente=${clienteId}`}
-                        className="btn-primary inline-flex items-center space-x-2"
-                      >
-                        <FileText size={16} />
-                        <span>Crear Primera Factura</span>
-                      </Link>
+                      <p>{filtroHoy ? "No hay facturas del día de hoy" : "No hay facturas registradas"}</p>
+                      <p className="text-sm mb-4">
+                        {filtroHoy
+                          ? "Este cliente no tiene facturas registradas hoy"
+                          : "Este cliente aún no tiene facturas asociadas"}
+                      </p>
+                      {!filtroHoy && (
+                        <Link
+                          href={`/facturas/nueva?cliente=${clienteId}`}
+                          className="btn-primary inline-flex items-center space-x-2"
+                        >
+                          <FileText size={16} />
+                          <span>Crear Primera Factura</span>
+                        </Link>
+                      )}
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Estadísticas Rápidas - Móvil después de Historial */}
+              <div className="lg:col-span-1 order-3 lg:order-3 mt-6 lg:mt-0">
+                <div className="card">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Resumen de Cuenta</h3>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">Total Facturas</span>
+                      <span className="font-semibold text-slate-900">{totalFacturas}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-600">Total Pagado</span>
+                      <span className="font-semibold text-green-600">RD${totalPagado.toLocaleString()}</span>
+                    </div>
+
+                    {totalDeuda > 0 && (
+                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <AlertTriangle size={16} className="text-red-500" />
+                          <span className="text-red-700 font-medium">Deuda Pendiente</span>
+                        </div>
+                        <span className="font-bold text-red-600">RD${totalDeuda.toLocaleString()}</span>
+                      </div>
+                    )}
+
+                    {facturasPendientes.length > 0 && (
+                      <div className="text-sm text-red-600">
+                        {facturasPendientes.length} factura{facturasPendientes.length !== 1 ? "s" : ""} pendiente
+                        {facturasPendientes.length !== 1 ? "s" : ""}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
