@@ -2,71 +2,261 @@
 
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { FileText, Users, Package, DollarSign, TrendingUp, Calendar, Plus } from "lucide-react"
+import { Users, Package, DollarSign, TrendingUp, TrendingDown, Calendar, Plus, FileText, Eye } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEstadisticas } from "@/hooks/useEstadisticas"
 import { useFacturas } from "@/hooks/useFacturas"
-import { useClientes } from "@/hooks/useClientes"
 import { useProductos } from "@/hooks/useProductos"
+import { useState, useEffect, useMemo } from "react"
+import { facturasApi } from "@/lib/api"
+import { useAuthenticatedApi } from "@/hooks/useAuthenticatedApi"
+import type { Factura, FacturaDetalle } from "@/lib/types"
 
 export default function Home() {
-  const { estadisticas, loading: loadingStats } = useEstadisticas()
-  const { facturas, loading: loadingFacturas } = useFacturas({
-    fecha_desde: new Date().toISOString().split("T")[0], // Solo hoy
+  const router = useRouter()
+  const hoy = new Date().toISOString().split("T")[0]
+  const ayer = new Date()
+  ayer.setDate(ayer.getDate() - 1)
+  const fechaAyer = ayer.toISOString().split("T")[0]
+
+  const { estadisticas: estadisticasHoy, loading: loadingStatsHoy } = useEstadisticas(hoy)
+  const { estadisticas: estadisticasAyer, loading: loadingStatsAyer } = useEstadisticas(fechaAyer)
+  const { facturas: facturasHoy, loading: loadingFacturas } = useFacturas({
+    fecha_desde: hoy,
+    fecha_hasta: hoy,
   })
-  const { clientes } = useClientes()
   const { productos } = useProductos()
+  const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
-  // Calcular estadísticas
-  const stats = [
-    {
-      title: "Facturas Hoy",
-      value: loadingStats ? "..." : estadisticas?.total_facturas.toString() || "0",
-      change: "+2.5%",
-      icon: FileText,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-      href: "/facturas",
-    },
-    {
-      title: "Ingresos Hoy",
-      value: loadingStats ? "..." : `RD$${estadisticas?.total_ingresos.toLocaleString() || "0"}`,
-      change: "+12.3%",
-      icon: DollarSign,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      href: "/facturas",
-    },
-    {
-      title: "Clientes",
-      value: clientes.length.toString(),
-      change: "+5.2%",
-      icon: Users,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-      href: "/clientes",
-    },
-    {
-      title: "Productos",
-      value: productos.length.toString(),
-      change: "+1.8%",
-      icon: Package,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-      href: "/productos",
-    },
-  ]
+  const [detallesFacturas, setDetallesFacturas] = useState<Map<number, FacturaDetalle[]>>(new Map())
+  const [loadingDetalles, setLoadingDetalles] = useState(false)
 
-  // Obtener las facturas más recientes (máximo 4)
-  const recentInvoices = facturas.slice(0, 4).map((factura) => ({
-    id: factura.numero_factura,
-    client: factura.cliente?.nombre || "Cliente desconocido",
-    amount: `RD$${factura.total.toLocaleString()}`,
-    time: new Date(factura.created_at).toLocaleTimeString("es-DO", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-  }))
+  // Obtener detalles de todas las facturas de hoy
+  useEffect(() => {
+    if (!isAuthenticated || facturasHoy.length === 0) return
+
+    const fetchDetalles = async () => {
+      setLoadingDetalles(true)
+      const nuevosDetalles = new Map<number, FacturaDetalle[]>()
+
+      try {
+        await Promise.all(
+          facturasHoy.map(async (factura) => {
+            try {
+              const response = await authenticatedRequest(() => facturasApi.getById(factura.id))
+              if (response.success && response.data.detalles) {
+                nuevosDetalles.set(factura.id, response.data.detalles)
+              }
+            } catch (err) {
+              console.error(`Error obteniendo detalles de factura ${factura.id}:`, err)
+            }
+          }),
+        )
+      } finally {
+        setLoadingDetalles(false)
+        setDetallesFacturas(nuevosDetalles)
+      }
+    }
+
+    fetchDetalles()
+  }, [facturasHoy, isAuthenticated, authenticatedRequest])
+
+  // Calcular ingresos y porcentaje
+  const ingresosHoy = estadisticasHoy?.total_ingresos || 0
+  const ingresosAyer = estadisticasAyer?.total_ingresos || 0
+  const porcentajeIngresos = useMemo(() => {
+    if (ingresosAyer === 0) {
+      return ingresosHoy > 0 ? "+100%" : "0%"
+    }
+    const cambio = ((ingresosHoy - ingresosAyer) / ingresosAyer) * 100
+    return `${cambio >= 0 ? "+" : ""}${cambio.toFixed(1)}%`
+  }, [ingresosHoy, ingresosAyer])
+
+  // Calcular clientes únicos que compraron hoy
+  const clientesUnicosHoy = useMemo(() => {
+    const clientesSet = new Set<number>()
+    facturasHoy.forEach((factura) => {
+      if (factura.cliente_id) {
+        clientesSet.add(factura.cliente_id)
+      }
+    })
+    return clientesSet.size
+  }, [facturasHoy])
+
+  // Obtener información de clientes recientes que compraron hoy
+  const clientesRecientes = useMemo(() => {
+    const clientesMap = new Map<number, { id: number; nombre: string; codigo: string; fechaUltimaCompra: Date }>()
+    
+    facturasHoy.forEach((factura) => {
+      if (factura.cliente_id && factura.cliente) {
+        const fechaCompra = new Date(factura.created_at)
+        const clienteExistente = clientesMap.get(factura.cliente_id)
+        
+        if (!clienteExistente || fechaCompra > clienteExistente.fechaUltimaCompra) {
+          clientesMap.set(factura.cliente_id, {
+            id: factura.cliente_id,
+            nombre: factura.cliente.nombre || "Cliente desconocido",
+            codigo: factura.cliente.codigo || "",
+            fechaUltimaCompra: fechaCompra,
+          })
+        }
+      }
+    })
+
+    return Array.from(clientesMap.values())
+      .sort((a, b) => b.fechaUltimaCompra.getTime() - a.fechaUltimaCompra.getTime())
+      .slice(0, 5)
+  }, [facturasHoy])
+
+  // Obtener clientes únicos del día anterior
+  const [clientesUnicosAyer, setClientesUnicosAyer] = useState(0)
+  useEffect(() => {
+    if (!authChecked || !isAuthenticated) return
+
+    const fetchClientesAyer = async () => {
+      try {
+        const response = await authenticatedRequest(() =>
+          facturasApi.getAll({
+            fecha_desde: fechaAyer,
+            fecha_hasta: fechaAyer,
+          }),
+        )
+        if (response.success) {
+          const clientesSet = new Set<number>()
+          response.data.forEach((factura: Factura) => {
+            if (factura.cliente_id) {
+              clientesSet.add(factura.cliente_id)
+            }
+          })
+          setClientesUnicosAyer(clientesSet.size)
+        }
+      } catch (err) {
+        console.error("Error obteniendo clientes de ayer:", err)
+      }
+    }
+
+    fetchClientesAyer()
+  }, [authChecked, isAuthenticated, authenticatedRequest, fechaAyer])
+
+  const porcentajeClientes = useMemo(() => {
+    if (clientesUnicosAyer === 0) {
+      return clientesUnicosHoy > 0 ? "+100%" : "0%"
+    }
+    const cambio = ((clientesUnicosHoy - clientesUnicosAyer) / clientesUnicosAyer) * 100
+    return `${cambio >= 0 ? "+" : ""}${cambio.toFixed(1)}%`
+  }, [clientesUnicosHoy, clientesUnicosAyer])
+
+  // Calcular productos vendidos hoy
+  const productosVendidosHoy = useMemo(() => {
+    const productosMap = new Map<number, { nombre: string; cantidadTotal: number; producto_id: number }>()
+
+    detallesFacturas.forEach((detalles) => {
+      detalles.forEach((detalle) => {
+        if (!productosMap.has(detalle.producto_id)) {
+          productosMap.set(detalle.producto_id, {
+            nombre: detalle.nombre_producto,
+            cantidadTotal: 0,
+            producto_id: detalle.producto_id,
+          })
+        }
+        const producto = productosMap.get(detalle.producto_id)!
+        producto.cantidadTotal += detalle.cantidad
+      })
+    })
+
+    return Array.from(productosMap.values())
+      .map((prod) => {
+        const producto = productos.find((p) => p.id === prod.producto_id)
+        return {
+          ...prod,
+          stock: producto?.stock || 0,
+        }
+      })
+      .sort((a, b) => b.cantidadTotal - a.cantidadTotal)
+      .slice(0, 5)
+  }, [detallesFacturas, productos])
+
+  // Calcular porcentaje de productos vendidos
+  const [productosVendidosAyer, setProductosVendidosAyer] = useState(0)
+  useEffect(() => {
+    if (!authChecked || !isAuthenticated) return
+
+    const fetchProductosAyer = async () => {
+      try {
+        const response = await authenticatedRequest(() =>
+          facturasApi.getAll({
+            fecha_desde: fechaAyer,
+            fecha_hasta: fechaAyer,
+          }),
+        )
+        if (response.success) {
+          let totalCantidad = 0
+          // Obtener detalles de todas las facturas del día anterior
+          await Promise.all(
+            response.data.map(async (factura: Factura) => {
+              try {
+                const detalleResponse = await authenticatedRequest(() => facturasApi.getById(factura.id))
+                if (detalleResponse.success && detalleResponse.data.detalles) {
+                  // Sumar la cantidad total de unidades vendidas
+                  const cantidadTotal = detalleResponse.data.detalles.reduce(
+                    (sum: number, detalle: FacturaDetalle) => sum + detalle.cantidad,
+                    0,
+                  )
+                  totalCantidad += cantidadTotal
+                }
+              } catch (err) {
+                console.error(`Error obteniendo detalles de factura ${factura.id}:`, err)
+              }
+            }),
+          )
+          setProductosVendidosAyer(totalCantidad)
+        }
+      } catch (err) {
+        console.error("Error obteniendo productos de ayer:", err)
+      }
+    }
+
+    fetchProductosAyer()
+  }, [authChecked, isAuthenticated, authenticatedRequest, fechaAyer])
+
+  const porcentajeProductos = useMemo(() => {
+    const productosHoy = productosVendidosHoy.reduce((sum, p) => sum + p.cantidadTotal, 0)
+    if (productosVendidosAyer === 0) {
+      return productosHoy > 0 ? "+100%" : "0%"
+    }
+    const cambio = ((productosHoy - productosVendidosAyer) / productosVendidosAyer) * 100
+    return `${cambio >= 0 ? "+" : ""}${cambio.toFixed(1)}%`
+  }, [productosVendidosHoy, productosVendidosAyer])
+
+  // Historial de ingresos del día (facturas de hoy)
+  const historialIngresos = useMemo(() => {
+    return [...facturasHoy]
+      .sort((a, b) => {
+        const fechaA = new Date(a.created_at)
+        const fechaB = new Date(b.created_at)
+        return fechaB.getTime() - fechaA.getTime()
+      })
+      .slice(0, 5)
+      .map((factura) => ({
+        id: factura.id,
+        numero: factura.numero_factura,
+        cliente: factura.cliente?.nombre || "Cliente desconocido",
+        total: factura.total,
+        hora: new Date(factura.created_at).toLocaleTimeString("es-DO", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      }))
+  }, [facturasHoy])
+
+  // URL para facturas de hoy
+  const urlFacturasHoy = `/facturas?fecha_desde=${hoy}&fecha_hasta=${hoy}`
+
+  // Calcular si el porcentaje es positivo o negativo
+  const esPositivo = (porcentaje: string) => {
+    return !porcentaje.startsWith("-") && porcentaje !== "0%"
+  }
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -125,86 +315,212 @@ export default function Home() {
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-slate-900">Estadísticas del Día</h2>
               <div className="flex items-center text-sm text-slate-600 mt-1">
-              <Calendar size={16} className="mr-2" />
-              {new Date().toLocaleDateString("es-DO", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+                <Calendar size={16} className="mr-2" />
+                {new Date().toLocaleDateString("es-DO", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {stats.map((stat) => {
-                const Icon = stat.icon
-                return (
-                  <Link
-                    key={stat.title}
-                    href={stat.href}
-                    className="card hover:shadow-md transition-shadow cursor-pointer group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-slate-600">{stat.title}</p>
-                        <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>
-                        <div className="flex items-center mt-2">
-                          <TrendingUp size={14} className="text-green-500 mr-1" />
-                          <span className="text-sm text-green-600">{stat.change}</span>
-                        </div>
-                      </div>
-                      <div
-                        className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform`}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Card de Ingresos Hoy */}
+              <div
+                onClick={() => router.push(urlFacturasHoy)}
+                className="card hover:shadow-md transition-shadow cursor-pointer group flex flex-col"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-600">Ingresos Hoy</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">
+                      {loadingStatsHoy ? "..." : `RD$${ingresosHoy.toLocaleString()}`}
+                    </p>
+                    <div className="flex items-center mt-2">
+                      {esPositivo(porcentajeIngresos) ? (
+                        <TrendingUp size={14} className="text-green-500 mr-1" />
+                      ) : (
+                        <TrendingDown size={14} className="text-red-500 mr-1" />
+                      )}
+                      <span
+                        className={`text-sm ${
+                          esPositivo(porcentajeIngresos) ? "text-green-600" : "text-red-600"
+                        }`}
                       >
-                        <Icon className={stat.color} size={24} />
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Recent Invoices */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-slate-900">Facturas Recientes</h2>
-              <Link href="/facturas" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                Ver todas
-              </Link>
-            </div>
-
-            {loadingFacturas ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-slate-600 mt-2">Cargando facturas...</p>
-              </div>
-            ) : recentInvoices.length > 0 ? (
-              <div className="space-y-4">
-                {recentInvoices.map((invoice) => (
-                  <div key={invoice.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <FileText className="text-blue-600" size={20} />
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-900">{invoice.id}</p>
-                        <p className="text-sm text-slate-600">{invoice.client}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-slate-900">{invoice.amount}</p>
-                      <p className="text-sm text-slate-600">{invoice.time}</p>
+                        {loadingStatsAyer ? "..." : porcentajeIngresos}
+                      </span>
                     </div>
                   </div>
-                ))}
+                  <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <DollarSign className="text-green-600" size={24} />
+                  </div>
+                </div>
+                {/* Historial de ingresos dentro de la card */}
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <p className="text-xs font-medium text-slate-600 mb-2">Historial del día:</p>
+                  {loadingFacturas ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600 mx-auto"></div>
+                    </div>
+                  ) : historialIngresos.length > 0 ? (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {historialIngresos.map((ingreso) => (
+                        <Link
+                          key={ingreso.id}
+                          href={`/facturas/${ingreso.id}?fromIngresosHoy=true`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center justify-between p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-slate-900 truncate">{ingreso.numero}</p>
+                            <p className="text-xs text-slate-600 truncate">{ingreso.cliente}</p>
+                          </div>
+                          <div className="text-right ml-2">
+                            <p className="text-xs font-semibold text-slate-900">
+                              RD${ingreso.total.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-slate-500">{ingreso.hora}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 text-center py-2">No hay ingresos registrados hoy</p>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-8 text-slate-500">
-                <FileText size={48} className="mx-auto mb-4 text-slate-300" />
-                <p>No hay facturas del día de hoy</p>
-                <p className="text-sm">Las facturas aparecerán aquí cuando se creen</p>
+
+              {/* Card de Clientes */}
+              <div
+                onClick={() => router.push("/clientes/hoy")}
+                className="card hover:shadow-md transition-shadow cursor-pointer group flex flex-col"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-600">Clientes</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">
+                      {loadingFacturas ? "..." : clientesUnicosHoy.toString()}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">Clientes únicos que compraron hoy</p>
+                    <div className="flex items-center mt-2">
+                      {esPositivo(porcentajeClientes) ? (
+                        <TrendingUp size={14} className="text-green-500 mr-1" />
+                      ) : (
+                        <TrendingDown size={14} className="text-red-500 mr-1" />
+                      )}
+                      <span
+                        className={`text-sm ${
+                          esPositivo(porcentajeClientes) ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {porcentajeClientes}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Users className="text-purple-600" size={24} />
+                  </div>
+                </div>
+                {/* Historial de clientes recientes dentro de la card */}
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <p className="text-xs font-medium text-slate-600 mb-2">Clientes recientes:</p>
+                  {loadingFacturas ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mx-auto"></div>
+                    </div>
+                  ) : clientesRecientes.length > 0 ? (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {clientesRecientes.map((cliente) => (
+                        <Link
+                          key={cliente.id}
+                          href={`/clientes/${cliente.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center justify-between p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-slate-900 truncate">{cliente.nombre}</p>
+                            <p className="text-xs text-slate-600 truncate">{cliente.codigo}</p>
+                          </div>
+                          <div className="text-right ml-2">
+                            <p className="text-xs text-slate-500">
+                              {cliente.fechaUltimaCompra.toLocaleTimeString("es-DO", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 text-center py-2">No hay clientes registrados hoy</p>
+                  )}
+                </div>
               </div>
-            )}
+
+              {/* Card de Productos */}
+              <div
+                onClick={() => router.push("/productos")}
+                className="card hover:shadow-md transition-shadow cursor-pointer group flex flex-col"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-600">Productos</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">
+                      {loadingDetalles ? "..." : productosVendidosHoy.length.toString()}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">Productos comprados hoy</p>
+                    <div className="flex items-center mt-2">
+                      {esPositivo(porcentajeProductos) ? (
+                        <TrendingUp size={14} className="text-green-500 mr-1" />
+                      ) : (
+                        <TrendingDown size={14} className="text-red-500 mr-1" />
+                      )}
+                      <span
+                        className={`text-sm ${
+                          esPositivo(porcentajeProductos) ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {porcentajeProductos}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Package className="text-orange-600" size={24} />
+                  </div>
+                </div>
+                {/* Historial de productos dentro de la card */}
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <p className="text-xs font-medium text-slate-600 mb-2">Productos más vendidos:</p>
+                  {loadingDetalles ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-600 mx-auto"></div>
+                    </div>
+                  ) : productosVendidosHoy.length > 0 ? (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {productosVendidosHoy.map((producto) => (
+                        <Link
+                          key={producto.producto_id}
+                          href={`/productos/${producto.producto_id}/editar`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center justify-between p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-slate-900 truncate">{producto.nombre}</p>
+                            <p className="text-xs text-slate-600">Comprado {producto.cantidadTotal}x hoy</p>
+                          </div>
+                          <span className="text-xs font-semibold text-blue-600 hover:text-blue-700 ml-2">
+                            Stock: {producto.stock}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 text-center py-2">No hay productos vendidos hoy</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </main>
       </div>
