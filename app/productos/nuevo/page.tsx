@@ -60,6 +60,9 @@ export default function NuevoProducto() {
       if (!formData.stock || Number.parseInt(formData.stock) < 0) {
         throw new Error("El stock no puede ser negativo")
       }
+      if (!formData.categoria_id) {
+        throw new Error("La categoría es requerida")
+      }
 
       const productoData = {
         nombre: formData.nombre,
@@ -167,6 +170,7 @@ export default function NuevoProducto() {
                       name="categoria_id"
                       value={formData.categoria_id}
                       onChange={handleChange}
+                      required
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
                     >
                       <option value="">Seleccionar categoría</option>
