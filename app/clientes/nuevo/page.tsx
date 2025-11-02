@@ -56,6 +56,12 @@ export default function NuevoCliente() {
         throw new Error("El nombre del cliente es requerido")
       }
 
+      if (!formData.telefono.trim()){
+        throw new Error("El teléfono del cliente es requerido")
+      }
+      if (!formData.email.trim()){
+        throw new Error("El email del cliente es requerido")
+      }
       const clienteCreado = await crearCliente(formData)
       
       // redirigir a la factura con el ID del cliente creado
@@ -146,6 +152,7 @@ export default function NuevoCliente() {
                       value={formData.telefono}
                       onChange={handleChange}
                       placeholder="809-555-0000"
+                      required
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
                     />
                   </div>
@@ -158,6 +165,7 @@ export default function NuevoCliente() {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="cliente@email.com"
+                      required
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
                     />
                   </div>
