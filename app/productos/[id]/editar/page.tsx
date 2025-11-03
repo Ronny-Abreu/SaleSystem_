@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, Save, Trash2 } from "lucide-react"
@@ -22,6 +22,8 @@ const CATEGORIAS = [
 export default function EditarProducto() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const fromProductosHoy = searchParams.get("fromProductosHoy") === "true"
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -110,7 +112,7 @@ export default function EditarProducto() {
       if (response.success) {
         setSuccess("Producto actualizado exitosamente")
         setTimeout(() => {
-          router.push("/productos")
+          router.push(fromProductosHoy ? "/productos/hoy" : "/productos")
         }, 1500)
       } else {
         throw new Error(response.message)
@@ -134,7 +136,7 @@ export default function EditarProducto() {
       if (response.success) {
         setSuccess("Producto desactivado exitosamente")
         setTimeout(() => {
-          router.push("/productos")
+          router.push(fromProductosHoy ? "/productos/hoy" : "/productos")
         }, 1500)
       } else {
         throw new Error(response.message)
@@ -172,7 +174,7 @@ export default function EditarProducto() {
             {/* Header con botones */}
             <div className="flex items-center justify-between mb-6">
               <Link
-                href="/productos"
+                href={fromProductosHoy ? "/productos/hoy" : "/productos"}
                 className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft size={20} />
@@ -309,7 +311,7 @@ export default function EditarProducto() {
 
                 <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-4 sm:gap-0 w-full">
                   <Link
-                  href="/productos"
+                  href={fromProductosHoy ? "/productos/hoy" : "/productos"}
                   className="btn-secondary w-full sm:w-auto flex justify-center items-center"
                   >
                   Cancelar
