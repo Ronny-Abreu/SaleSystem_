@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter, useSearchParams } from "next/navigation" // Importar useSearchParams
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, Printer, Check, X, Clock, ArrowRight } from "lucide-react"
@@ -14,8 +14,10 @@ type EstadoFactura = "pendiente" | "pagada" | "anulada"
 export default function FacturaDetalle() {
   const params = useParams()
   const router = useRouter()
-  const searchParams = useSearchParams() // Usar useSearchParams
-  const fromClient = searchParams.get("fromClient") // Obtener el parámetro fromClient
+  const searchParams = useSearchParams()
+  const fromClient = searchParams.get("fromClient")
+  const fromIngresosHoy = searchParams.get("fromIngresosHoy") === "true"
+  const fromClientesHoy = searchParams.get("fromClientesHoy") === "true"
 
   const [factura, setFactura] = useState<Factura | null>(null)
   const [loading, setLoading] = useState(true)
@@ -63,7 +65,12 @@ export default function FacturaDetalle() {
   }, [params.id])
 
   // Determinar la URL de regreso
-  const backUrl = fromClient ? `/clientes/${fromClient}` : "/facturas"
+  const hoy = new Date().toISOString().split("T")[0]
+  const backUrl = fromClient
+    ? `/clientes/${fromClient}${fromClientesHoy ? "?fromClientesHoy=true" : ""}`
+    : fromIngresosHoy
+      ? `/facturas?fecha_desde=${hoy}&fecha_hasta=${hoy}`
+      : "/facturas"
 
   if (loading) {
     return (
@@ -140,7 +147,13 @@ export default function FacturaDetalle() {
                 className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft size={20} />
-                <span className="hidden sm:inline">{fromClient ? "Volver al Cliente" : "Volver a facturas"}</span>
+                <span className="hidden sm:inline">
+                  {fromClient
+                    ? "Volver al Cliente"
+                    : fromIngresosHoy
+                      ? "Volver a Ingresos del Día"
+                      : "Volver a facturas"}
+                </span>
               </Link>
 
               <div className="flex space-x-2 md:space-x-3">

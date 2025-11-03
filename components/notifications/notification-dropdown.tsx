@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Bell, CheckCheck, Clock, FileText } from "lucide-react"
 import { useNotificaciones } from "@/hooks/useNotificaciones"
 
 export function NotificationDropdown() {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const { notificaciones, cantidadNoLeidas, marcarComoLeida, marcarTodasComoLeidas } = useNotificaciones()
 
@@ -19,19 +21,54 @@ export function NotificationDropdown() {
 
   const formatTimeAgo = (fecha: string) => {
     const now = new Date()
-    const date = new Date(fecha)
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+    
+    let date: Date
+    
+    if (fecha.includes("T")) {
 
-    if (diffInMinutes < 1) return "hace un momento"
-    if (diffInMinutes < 60) return `hace ${diffInMinutes} minuto${diffInMinutes > 1 ? "s" : ""}`
+      date = new Date(fecha)
+    } else if (fecha.includes(" ")) {
+      const [datePart, timePart] = fecha.split(" ")
+      const timeOnly = timePart ? timePart.split(".")[0] : "00:00:00"
+      const isoString = `${datePart}T${timeOnly}`
+      date = new Date(isoString)
+    } else {
 
+      date = new Date(`${fecha}T00:00:00`)
+    }
+    
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+    const diffInMinutes = Math.floor(diffInSeconds / 60)
     const diffInHours = Math.floor(diffInMinutes / 60)
-    if (diffInHours < 24) return `hace ${diffInHours} hora${diffInHours > 1 ? "s" : ""}`
-
     const diffInDays = Math.floor(diffInHours / 24)
-    if (diffInDays < 7) return `hace ${diffInDays} día${diffInDays > 1 ? "s" : ""}`
 
-    return date.toLocaleDateString("es-DO")
+    // Formateo de la hora de la notificación (segundo, minuto, hora, día)
+    const horaFormateada = date.toLocaleTimeString("es-DO", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
+    const diaFormateado = date.toLocaleDateString("es-DO", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+    })
+
+    let tiempoTranscurrido = ""
+    if (diffInSeconds < 60) {
+      tiempoTranscurrido = `hace ${diffInSeconds} segundo${diffInSeconds !== 1 ? "s" : ""}`
+    } else if (diffInMinutes < 60) {
+      tiempoTranscurrido = `hace ${diffInMinutes} minuto${diffInMinutes !== 1 ? "s" : ""}`
+    } else if (diffInHours < 24) {
+      tiempoTranscurrido = `hace ${diffInHours} hora${diffInHours !== 1 ? "s" : ""}`
+    } else if (diffInDays < 7) {
+      tiempoTranscurrido = `hace ${diffInDays} día${diffInDays !== 1 ? "s" : ""}`
+    } else {
+      // Para fechas más antiguas, mostrar la fecha completa
+      return `${diaFormateado} ${horaFormateada}`
+    }
+
+    return `${tiempoTranscurrido} - ${diaFormateado} ${horaFormateada}`
   }
 
   return (
@@ -72,13 +109,24 @@ export function NotificationDropdown() {
 
             <div className="max-h-96 overflow-y-auto">
               {notificaciones.length > 0 ? (
-                notificaciones.map((notificacion) => (
+                notificaciones.map((notificacion) => {
+                  const facturaId = notificacion.data?.id || notificacion.id.replace("factura-", "")
+                  
+                  const handleClick = () => {
+                    marcarComoLeida(notificacion.id)
+                    setIsOpen(false)
+                    if (facturaId && notificacion.tipo === "factura_pendiente") {
+                      router.push(`/facturas/${facturaId}`)
+                    }
+                  }
+
+                  return (
                   <div
                     key={notificacion.id}
                     className={`p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer ${
                       !notificacion.leida ? "bg-blue-50" : ""
                     }`}
-                    onClick={() => marcarComoLeida(notificacion.id)}
+                    onClick={handleClick}
                   >
                     <div className="flex items-start space-x-3">
                       <div className="flex-shrink-0 mt-1">{getIconForType(notificacion.tipo)}</div>
@@ -95,7 +143,8 @@ export function NotificationDropdown() {
                       </div>
                     </div>
                   </div>
-                ))
+                  )
+                })
               ) : (
                 <div className="p-8 text-center text-slate-500">
                   <Bell size={48} className="mx-auto mb-4 text-slate-300" />

@@ -8,14 +8,16 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, Save, User } from "lucide-react"
 import Link from "next/link"
 import { useClientes } from "@/hooks/useClientes"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { clientesApi } from "@/lib/api"
 
 export default function EditarCliente() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const { actualizarCliente } = useClientes()
   const clienteId = Number(params.id)
+  const fromClientesHoy = searchParams.get("fromClientesHoy") === "true"
 
   const [formData, setFormData] = useState({
     codigo: "",
@@ -84,7 +86,10 @@ export default function EditarCliente() {
         direccion: formData.direccion,
       })
 
-      router.push(`/clientes/${clienteId}?success=updated`)
+      const returnUrl = fromClientesHoy 
+        ? `/clientes/${clienteId}?success=updated&fromClientesHoy=true`
+        : `/clientes/${clienteId}?success=updated`
+      router.push(returnUrl)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
     } finally {
@@ -118,7 +123,7 @@ export default function EditarCliente() {
             {/* Header con botones */}
             <div className="flex items-center justify-between mb-6">
               <Link
-                href={`/clientes/${clienteId}`}
+                href={fromClientesHoy ? `/clientes/${clienteId}?fromClientesHoy=true` : `/clientes/${clienteId}`}
                 className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft size={20} />
@@ -212,7 +217,7 @@ export default function EditarCliente() {
 
                 <div className="flex justify-end space-x-3 pt-6">
                   <Link
-                    href={`/clientes/${clienteId}`}
+                    href={fromClientesHoy ? `/clientes/${clienteId}?fromClientesHoy=true` : `/clientes/${clienteId}`}
                     className="px-6 py-2 text-slate-600 hover:text-slate-800 transition-colors"
                   >
                     Cancelar

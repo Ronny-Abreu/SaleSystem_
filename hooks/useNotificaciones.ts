@@ -38,7 +38,7 @@ export function useNotificaciones() {
             tipo: "factura_pendiente" as const,
             titulo: "Factura Pendiente",
             mensaje: `Factura ${factura.numero_factura} de ${factura.cliente?.nombre || "Cliente"} está pendiente de pago`,
-            fecha: factura.fecha,
+            fecha: factura.created_at || factura.fecha,
             leida: false,
             data: factura,
           }))
