@@ -63,7 +63,9 @@ export default function FacturasPage() {
   const fechaFormateada = useMemo(() => {
     if (!esConsultaDiaEspecifico || !filtroFecha) return null
     try {
-      return new Date(filtroFecha).toLocaleDateString("es-DO", {
+      const [year, month, day] = filtroFecha.split("-").map(Number)
+      const fecha = new Date(year, month - 1, day)
+      return fecha.toLocaleDateString("es-DO", {
         weekday: "long",
         year: "numeric",
         month: "long",
@@ -113,7 +115,10 @@ export default function FacturasPage() {
 
               {/* Botón desktop */}
               <div className="hidden md:block">
-                <Link href="/facturas/nueva" className="btn-primary flex items-center space-x-2">
+                <Link
+                  href={esConsultaDiaEspecifico ? `/facturas/nueva?fromIngresosHoy=true` : "/facturas/nueva"}
+                  className="btn-primary flex items-center space-x-2"
+                >
                   <Plus size={16} />
                   <span>Nueva Factura</span>
                 </Link>
@@ -155,7 +160,17 @@ export default function FacturasPage() {
                   <input
                     type="date"
                     value={filtroFecha}
-                    onChange={(e) => setFiltroFecha(e.target.value)}
+                    onChange={(e) => {
+                      const fechaValue = e.target.value
+                      if (fechaValue) {
+                        const fechaValidada = fechaValue.match(/^\d{4}-\d{2}-\d{2}$/)
+                        if (fechaValidada) {
+                          setFiltroFecha(fechaValue)
+                        }
+                      } else {
+                        setFiltroFecha("")
+                      }
+                    }}
                     className="flex-1 sm:flex-none px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="Fecha desde"
                   />
@@ -163,7 +178,17 @@ export default function FacturasPage() {
                   <input
                     type="date"
                     value={filtroFechaHasta}
-                    onChange={(e) => setFiltroFechaHasta(e.target.value)}
+                    onChange={(e) => {
+                      const fechaValue = e.target.value
+                      if (fechaValue) {
+                        const fechaValidada = fechaValue.match(/^\d{4}-\d{2}-\d{2}$/)
+                        if (fechaValidada) {
+                          setFiltroFechaHasta(fechaValue)
+                        }
+                      } else {
+                        setFiltroFechaHasta("")
+                      }
+                    }}
                     className="flex-1 sm:flex-none px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="Fecha hasta"
                   />
@@ -289,7 +314,7 @@ export default function FacturasPage() {
           {/* Botón flotante para móvil */}
           <div className="md:hidden fixed bottom-6 right-6 z-50">
             <Link
-              href="/facturas/nueva"
+              href={esConsultaDiaEspecifico ? `/facturas/nueva?fromIngresosHoy=true` : "/facturas/nueva"}
               className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
               title="Nueva Factura"
             >

@@ -17,6 +17,7 @@ export default function FacturaDetalle() {
   const searchParams = useSearchParams()
   const fromClient = searchParams.get("fromClient")
   const fromIngresosHoy = searchParams.get("fromIngresosHoy") === "true"
+  const fromClientesHoy = searchParams.get("fromClientesHoy") === "true"
 
   const [factura, setFactura] = useState<Factura | null>(null)
   const [loading, setLoading] = useState(true)
@@ -66,7 +67,7 @@ export default function FacturaDetalle() {
   // Determinar la URL de regreso
   const hoy = new Date().toISOString().split("T")[0]
   const backUrl = fromClient
-    ? `/clientes/${fromClient}`
+    ? `/clientes/${fromClient}${fromClientesHoy ? "?fromClientesHoy=true" : ""}`
     : fromIngresosHoy
       ? `/facturas?fecha_desde=${hoy}&fecha_hasta=${hoy}`
       : "/facturas"

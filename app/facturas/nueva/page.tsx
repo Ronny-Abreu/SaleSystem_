@@ -39,13 +39,14 @@ export default function NuevaFactura() {
   const [showProductoModal, setShowProductoModal] = useState(false)
   const [estadoFactura, setEstadoFactura] = useState<"pagada" | "pendiente">("pagada")
 
-  // Detectar si viene desde productos
   const vieneDesdeProductos = searchParams.get("desde") === "productos"
-  
-  // Obtener clienteId de la URL si viene de creación de cliente
-  const clienteIdFromUrl = searchParams.get("clienteId")
 
-  // Efecto para cargar cliente si viene desde la creación de cliente
+  const fromIngresosHoy = searchParams.get("fromIngresosHoy") === "true"
+
+  const fromClientesHoy = searchParams.get("fromClientesHoy") === "true"
+
+  const clienteIdFromUrl = searchParams.get("cliente") || searchParams.get("clienteId")
+
   useEffect(() => {
     const loadClienteFromUrl = async () => {
       if (clienteIdFromUrl && !cliente) {
@@ -54,7 +55,15 @@ export default function NuevaFactura() {
           if (clienteCargado) {
             setCliente(clienteCargado)
 
-            const newUrl = window.location.pathname
+            // Preservar los parámetros importantes en la URL
+            const params = new URLSearchParams()
+            if (fromIngresosHoy) params.set('fromIngresosHoy', 'true')
+            if (fromClientesHoy) params.set('fromClientesHoy', 'true')
+            if (clienteIdFromUrl) params.set('cliente', clienteIdFromUrl.toString())
+            
+            const newUrl = params.toString() 
+              ? `${window.location.pathname}?${params.toString()}`
+              : window.location.pathname
             window.history.replaceState({}, "", newUrl)
           }
         } catch (err) {
@@ -63,7 +72,7 @@ export default function NuevaFactura() {
       }
     }
     loadClienteFromUrl()
-  }, [clienteIdFromUrl, cliente, buscarPorId])
+  }, [clienteIdFromUrl, cliente, buscarPorId, fromIngresosHoy, fromClientesHoy])
 
   // Efecto para precargar productos del carrito si viene desde la pantalla de productos
   useEffect(() => {
@@ -159,6 +168,18 @@ export default function NuevaFactura() {
   const handleVolver = () => {
     if (vieneDesdeProductos) {
       router.push('/productos')
+    } else if (clienteIdFromUrl && fromClientesHoy) {
+
+      // Si viene desde el detalle de un cliente que viene de clientes/hoy, regresar al cliente
+      router.push(`/clientes/${clienteIdFromUrl}?fromClientesHoy=true`)
+    } else if (clienteIdFromUrl) {
+
+      // Si viene desde el detalle de un cliente, regresar al cliente
+      router.push(`/clientes/${clienteIdFromUrl}`)
+    } else if (fromIngresosHoy) {
+      const hoy = new Date().toISOString().split("T")[0]
+      router.push(`/facturas?fecha_desde=${hoy}&fecha_hasta=${hoy}`)
+      
     } else {
       router.push('/facturas')
     }
@@ -221,6 +242,17 @@ export default function NuevaFactura() {
       // Redirigir según el origen
       if (vieneDesdeProductos) {
         router.push(`/productos?factura_creada=true&numero=${facturaCreada.numero_factura}`)
+      } else if (clienteIdFromUrl) {
+
+        const returnUrl = fromClientesHoy 
+          ? `/clientes/${clienteIdFromUrl}?fromClientesHoy=true`
+          : `/clientes/${clienteIdFromUrl}`
+        router.push(returnUrl)
+
+      } else if (fromIngresosHoy) {
+        const hoy = new Date().toISOString().split("T")[0]
+        router.push(`/facturas?fecha_desde=${hoy}&fecha_hasta=${hoy}&success=true&numero=${facturaCreada.numero_factura}`)
+
       } else {
         router.push(`/facturas?success=true&numero=${facturaCreada.numero_factura}`)
       }
@@ -252,8 +284,14 @@ export default function NuevaFactura() {
                 <ArrowLeft size={20} />
                 <span className="hidden md:inline">
                   {showPreview 
-                    ? "Volver a factura actural" 
-                    : (vieneDesdeProductos ? "Volver a productos" : "Volver a facturas")
+                    ? "Volver a factura actual" 
+                    : (vieneDesdeProductos 
+                        ? "Volver a productos" 
+                        : (clienteIdFromUrl
+                            ? "Volver al cliente"
+                            : fromIngresosHoy 
+                              ? "Volver a Ingresos del Día" 
+                              : "Volver a facturas"))
                   }
                 </span>
                 <span className="md:hidden">Volver</span>
@@ -328,7 +366,7 @@ export default function NuevaFactura() {
                   </div>
                 </div>
 
-                {/* Información del cliente mejorada */}
+                {/* Información del cliente */}
                 <div className="card">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                     <div className="flex items-center space-x-2 mb-4 md:mb-0">
@@ -355,7 +393,18 @@ export default function NuevaFactura() {
                       </button>
 
                       <button
-                        onClick={() => router.push('/clientes/nuevo?returnTo=/facturas/nueva')}
+                        onClick={() => {
+                          // URL de retorno con todos los parámetros necesarios
+                          let returnUrl = '/facturas/nueva'
+                          const params: string[] = []
+                          if (fromIngresosHoy) params.push('fromIngresosHoy=true')
+                          if (fromClientesHoy) params.push('fromClientesHoy=true')
+                          if (clienteIdFromUrl) params.push(`cliente=${clienteIdFromUrl}`)
+                          if (params.length > 0) {
+                            returnUrl += '?' + params.join('&')
+                          }
+                          router.push(`/clientes/nuevo?returnTo=${encodeURIComponent(returnUrl)}`)
+                        }}
                         className="inline-flex items-center space-x-1.5 px-2 py-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors text-sm whitespace-nowrap"
                       >
                         <Plus size={14} />
@@ -398,7 +447,8 @@ export default function NuevaFactura() {
 
                     {/* Contenedor de botones para escritorio */}
                     <div className="hidden md:flex items-center space-x-2">
-                      {/* Botón Facturar desktop */}
+
+                      {/* Botón Facturar - desktop */}
                       {cliente && items.length > 0 && (
                         <button
                         onClick={guardarFactura}
@@ -420,7 +470,7 @@ export default function NuevaFactura() {
                       </button>
                     </div>
 
-                    {/* Botón agregar artículo responsive (solo móvil) */}
+                    {/* Botón agregar artículo responsive - móvil */}
                     <div className="relative md:hidden">
                       <button
                         onClick={agregarItem}
@@ -652,7 +702,7 @@ export default function NuevaFactura() {
         </main>
       </div>
 
-      {/* Modal de búsqueda de clientes mejorado */}
+      {/* Modal de búsqueda de clientes */}
       <ClienteSearchModal
         isOpen={showClienteModal}
         onClose={() => setShowClienteModal(false)}
