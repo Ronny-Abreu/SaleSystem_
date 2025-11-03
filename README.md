@@ -132,7 +132,7 @@ backend/
 ## 📸 Capturas de Pantalla
 
 > - Dashboard principal con estadísticas diarias e historial
-<img width="1902" height="878" alt="image" src="https://github.com/user-attachments/assets/5e83d530-59a6-462d-8a91-6cb0a413e38e" />
+<img width="1894" height="864" alt="image" src="https://github.com/user-attachments/assets/5deae4ba-1f18-4f1c-81e9-a50bb0a07039" />
 <img width="1897" height="880" alt="image" src="https://github.com/user-attachments/assets/66e78eb5-24e0-47d6-929f-881cac5bf18f" />
 
 ---
