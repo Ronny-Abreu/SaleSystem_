@@ -6,7 +6,12 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { AuthGuard } from "@/components/auth/auth-guard"
 import { PreventFOUC } from "@/components/ui/prevent-fouc"
 
-const inter = Inter({ subsets: ["latin"], display: "swap", preload: true })
+const inter = Inter({ 
+  subsets: ["latin"], 
+  display: "swap", 
+  preload: true,
+  fallback: ['system-ui', 'arial'],
+})
 
 export const metadata: Metadata = {
   title: "SaleSystem - La Rubia",
@@ -21,48 +26,37 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://salesystem-production-0d90.up.railway.app" />
+        <link rel="dns-prefetch" href="https://salesystem-production-0d90.up.railway.app" />
+        
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                // Ocultar contenido hasta que los estilos estén listos
-                if (!document.documentElement.classList.contains('loaded')) {
-                  document.documentElement.style.visibility = 'hidden';
-                  document.documentElement.style.opacity = '0';
-                }
-                
-                // Mostrar cuando la página esté completamente cargada
-                function showContent() {
+                // Versión optimizada sin setTimeout que causa retrasos
+                const showContent = () => {
                   document.documentElement.classList.add('loaded');
-                  document.documentElement.style.visibility = 'visible';
-                  document.documentElement.style.opacity = '1';
-                }
+                };
                 
                 if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', showContent);
+                  document.addEventListener('DOMContentLoaded', showContent, { once: true });
                 } else {
                   showContent();
                 }
-                
-                // Fallback: mostrar después de un tiempo máximo
-                setTimeout(showContent, 100);
               })();
             `,
           }}
         />
-        {/* Estilos críticos inline para prevenir FOUC */}
+
         <style
           dangerouslySetInnerHTML={{
             __html: `
               html { 
                 visibility: hidden; 
-                opacity: 0; 
                 background-color: #f8fafc;
               }
               html.loaded { 
                 visibility: visible; 
-                opacity: 1; 
-                transition: opacity 0.15s ease-in; 
               }
               body { 
                 margin: 0; 

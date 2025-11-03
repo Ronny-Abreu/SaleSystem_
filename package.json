@@ -8,6 +8,19 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "browserslist": [
+    "> 0.5%",
+    "last 2 versions",
+    "not dead",
+    "not op_mini all",
+    "Chrome >= 90",
+    "Firefox >= 90",
+    "Safari >= 14",
+    "Edge >= 90"
+  ],
   "dependencies": {
     "@tsparticles/engine": "^3.8.1",
     "@tsparticles/react": "^3.0.0",

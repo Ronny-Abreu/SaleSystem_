@@ -1,6 +1,5 @@
 import { API_BASE_URL } from "@/lib/config"
 import type { Cliente, Producto, Factura } from "@/lib/types"
-import { useAuth } from "@/contexts/auth-context"
 
 // Tipos para las respuestas de la API
 interface ApiResponse<T> {
@@ -9,8 +8,11 @@ interface ApiResponse<T> {
   data: T
 }
 
-// Función helper para hacer requests
-async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+async function apiRequest<T>(
+  endpoint: string, 
+  options: RequestInit = {},
+  cacheOptions?: { cache?: RequestCache; next?: { revalidate?: number } }
+): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}/${endpoint}`
 
   const defaultOptions: RequestInit = {
@@ -20,7 +22,17 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     },
   }
 
-  const response = await fetch(url, { ...defaultOptions, ...options })
+  const fetchOptions: RequestInit = {
+    ...defaultOptions,
+    ...options,
+  }
+
+  if (cacheOptions && !options.method) {
+    fetchOptions.cache = cacheOptions.cache
+    fetchOptions.next = cacheOptions.next
+  }
+
+  const response = await fetch(url, fetchOptions)
 
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`;
@@ -30,7 +42,6 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
         errorMessage = errorData.message;
       }
     } catch (e) {
-      // Si no se puede parsear como JSON, se mantiene el mensaje por defecto
     }
     throw new Error(errorMessage);
   }
