@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Estilos críticos para prevenir FOUC */
+html {
+  background-color: #f8fafc;
+}
+
+body {
+  min-height: 100vh;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
