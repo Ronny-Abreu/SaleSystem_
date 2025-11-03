@@ -149,7 +149,7 @@ export default function ClientesDelDia() {
               </p>
             </div>
 
-            {/* Layout dinámico: gráfico y lista lado a lado en pantallas grandes */}
+            {/* Layout dinámico: gráfico y lista lado a lado en pantallas grandes cuando se muestra el gráfico */}
             <div
               className={`grid gap-6 transition-all duration-500 ease-in-out ${
                 mostrarGrafico

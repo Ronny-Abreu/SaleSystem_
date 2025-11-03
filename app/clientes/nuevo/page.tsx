@@ -66,7 +66,9 @@ export default function NuevoCliente() {
       
       // redirigir a la factura con el ID del cliente creado
       if (returnTo && clienteCreado && clienteCreado.id) {
-        router.push(`${returnTo}?clienteId=${clienteCreado.id}`)
+      
+        const separator = returnTo.includes('?') ? '&' : '?'
+        router.push(`${returnTo}${separator}clienteId=${clienteCreado.id}`)
       } else {
         // redirigir a la página de clientes
         router.push("/clientes?success=true")

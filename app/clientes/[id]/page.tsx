@@ -164,7 +164,7 @@ export default function DetalleCliente() {
                 </Link>
 
                 <Link
-                  href={`/clientes/${clienteId}/editar`}
+                  href={`/clientes/${clienteId}/editar${fromClientesHoy ? "?fromClientesHoy=true" : ""}`}
                   className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                 >
                   <Edit size={16} />
@@ -173,7 +173,7 @@ export default function DetalleCliente() {
               </div>
 
               <Link
-                href={`/facturas/nueva?cliente=${clienteId}`}
+                href={`/facturas/nueva?cliente=${clienteId}${fromClientesHoy ? "&fromClientesHoy=true" : ""}`}
                 className="btn-primary flex items-center space-x-2 px-3 py-2 text-sm"
               >
                 <FileText size={16} />
@@ -369,7 +369,7 @@ export default function DetalleCliente() {
                               </td>
                               <td className="py-3 px-2 md:px-4 text-center">
                                 <Link
-                                  href={`/facturas/${factura.id}?fromClient=${clienteId}`} // Pasar fromClient
+                                  href={`/facturas/${factura.id}?fromClient=${clienteId}${fromClientesHoy ? "&fromClientesHoy=true" : ""}`} // Pasar fromClient y fromClientesHoy si aplica
                                   className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"
                                 >
                                   <Eye size={16} />
@@ -391,7 +391,7 @@ export default function DetalleCliente() {
                       </p>
                       {!filtroHoy && (
                         <Link
-                          href={`/facturas/nueva?cliente=${clienteId}`}
+                          href={`/facturas/nueva?cliente=${clienteId}${fromClientesHoy ? "&fromClientesHoy=true" : ""}`}
                           className="btn-primary inline-flex items-center space-x-2"
                         >
                           <FileText size={16} />
