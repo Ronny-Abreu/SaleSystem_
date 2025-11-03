@@ -460,7 +460,7 @@ export default function Home() {
 
               {/* Card de Productos */}
               <div
-                onClick={() => router.push("/productos")}
+                onClick={() => router.push("/productos/hoy")}
                 className="card hover:shadow-md transition-shadow cursor-pointer group flex flex-col"
               >
                 <div className="flex items-center justify-between mb-4">
