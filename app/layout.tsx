@@ -26,8 +26,19 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://salesystem-production-0d90.up.railway.app" />
-        <link rel="dns-prefetch" href="https://salesystem-production-0d90.up.railway.app" />
+        {process.env.NODE_ENV === "production" ? (
+          <>
+            <link rel="preconnect" href="https://salesystem-production-0d90.up.railway.app" />
+            <link rel="dns-prefetch" href="https://salesystem-production-0d90.up.railway.app" />
+          </>
+        ) : null}
+        
+        {process.env.NODE_ENV === "production" && (
+          <>
+            <link rel="prefetch" href="/api/auth.php" as="fetch" crossOrigin="use-credentials" />
+            <link rel="prefetch" href="/api/productos.php" as="fetch" crossOrigin="use-credentials" />
+          </>
+        )}
         
         <script
           dangerouslySetInnerHTML={{

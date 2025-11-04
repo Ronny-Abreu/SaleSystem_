@@ -5,54 +5,39 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Users, Package, DollarSign, TrendingUp, TrendingDown, Calendar, Plus, FileText, Eye } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEstadisticas } from "@/hooks/useEstadisticas"
-import { useFacturas } from "@/hooks/useFacturas"
-import { useProductos } from "@/hooks/useProductos"
-import { useState, useEffect, useMemo } from "react"
-import { facturasApi } from "@/lib/api"
-import { useAuthenticatedApi } from "@/hooks/useAuthenticatedApi"
-import type { Factura, FacturaDetalle } from "@/lib/types"
+import { useDashboardData } from "@/hooks/useDashboardData"
+import { useMemo } from "react"
+import type { FacturaDetalle } from "@/lib/types"
 
 export default function Home() {
   const router = useRouter()
   const hoy = new Date().toISOString().split("T")[0]
-  const ayer = new Date()
-  ayer.setDate(ayer.getDate() - 1)
-  const fechaAyer = ayer.toISOString().split("T")[0]
 
-  const { estadisticas: estadisticasHoy, loading: loadingStatsHoy } = useEstadisticas(hoy)
-  const { estadisticas: estadisticasAyer, loading: loadingStatsAyer } = useEstadisticas(fechaAyer)
-  
-  const { facturas: facturasHoy, loading: loadingFacturas } = useFacturas({
-    fecha_desde: hoy,
-    fecha_hasta: hoy,
-    incluir_detalles: true,
-  })
-  
-  const { productos } = useProductos()
-  const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
+  const {
+    facturasHoy,
+    facturasAyer,
+    productos,
+    estadisticasHoy,
+    estadisticasAyer,
+    loading: loadingAll,
+  } = useDashboardData()
 
-  const [detallesFacturas, setDetallesFacturas] = useState<Map<number, FacturaDetalle[]>>(new Map())
-  const [loadingDetalles, setLoadingDetalles] = useState(false)
-
-  useEffect(() => {
-    if (facturasHoy.length > 0) {
-      const nuevosDetalles = new Map<number, FacturaDetalle[]>()
-      facturasHoy.forEach((factura) => {
-        if (factura.detalles && factura.detalles.length > 0) {
-          nuevosDetalles.set(factura.id, factura.detalles)
-        }
-      })
-      setDetallesFacturas(nuevosDetalles)
-      setLoadingDetalles(false)
-    } else if (!loadingFacturas) {
-      setLoadingDetalles(false)
-    }
-  }, [facturasHoy, loadingFacturas])
+  const detallesFacturas = useMemo(() => {
+    const detallesMap = new Map<number, FacturaDetalle[]>()
+    facturasHoy.forEach((factura) => {
+      if (factura.detalles && factura.detalles.length > 0) {
+        detallesMap.set(factura.id, factura.detalles)
+      }
+    })
+    return detallesMap
+  }, [facturasHoy])
 
   // Calcular ingresos y porcentaje
   const ingresosHoy = estadisticasHoy?.total_ingresos || 0
   const ingresosAyer = estadisticasAyer?.total_ingresos || 0
+  const loadingStatsHoy = loadingAll
+  const loadingStatsAyer = loadingAll
+  const loadingFacturas = loadingAll
   const porcentajeIngresos = useMemo(() => {
     if (ingresosAyer === 0) {
       return ingresosHoy > 0 ? "+100%" : "0%"
@@ -96,12 +81,6 @@ export default function Home() {
       .sort((a, b) => b.fechaUltimaCompra.getTime() - a.fechaUltimaCompra.getTime())
       .slice(0, 5)
   }, [facturasHoy])
-
-  const { facturas: facturasAyer } = useFacturas({
-    fecha_desde: fechaAyer,
-    fecha_hasta: fechaAyer,
-    incluir_detalles: true,
-  })
 
   // Calcular clientes únicos del día anterior
   const clientesUnicosAyer = useMemo(() => {
@@ -278,7 +257,7 @@ export default function Home() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-slate-600">Ingresos Hoy</p>
                     <p className="text-2xl font-bold text-slate-900 mt-1">
-                      {loadingStatsHoy ? "..." : `RD$${ingresosHoy.toLocaleString()}`}
+                      {loadingAll ? "..." : `RD$${ingresosHoy.toLocaleString()}`}
                     </p>
                     <div className="flex items-center mt-2">
                       {esPositivo(porcentajeIngresos) ? (
@@ -291,7 +270,7 @@ export default function Home() {
                           esPositivo(porcentajeIngresos) ? "text-green-600" : "text-red-600"
                         }`}
                       >
-                        {loadingStatsAyer ? "..." : porcentajeIngresos}
+                        {loadingAll ? "..." : porcentajeIngresos}
                       </span>
                     </div>
                   </div>
@@ -302,7 +281,7 @@ export default function Home() {
                 {/* Historial de ingresos dentro de la card */}
                 <div className="mt-4 pt-4 border-t border-slate-200">
                   <p className="text-xs font-medium text-slate-600 mb-2">Historial del día:</p>
-                  {loadingFacturas ? (
+                  {loadingAll ? (
                     <div className="text-center py-4">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600 mx-auto"></div>
                     </div>
@@ -343,7 +322,7 @@ export default function Home() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-slate-600">Clientes</p>
                     <p className="text-2xl font-bold text-slate-900 mt-1">
-                      {loadingFacturas ? "..." : clientesUnicosHoy.toString()}
+                      {loadingAll ? "..." : clientesUnicosHoy.toString()}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">Clientes únicos que compraron hoy</p>
                     <div className="flex items-center mt-2">
@@ -368,7 +347,7 @@ export default function Home() {
                 {/* Historial de clientes recientes dentro de la card */}
                 <div className="mt-4 pt-4 border-t border-slate-200">
                   <p className="text-xs font-medium text-slate-600 mb-2">Clientes recientes:</p>
-                  {loadingFacturas ? (
+                  {loadingAll ? (
                     <div className="text-center py-4">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mx-auto"></div>
                     </div>
@@ -411,7 +390,7 @@ export default function Home() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-slate-600">Productos</p>
                     <p className="text-2xl font-bold text-slate-900 mt-1">
-                      {loadingDetalles ? "..." : productosVendidosHoy.length.toString()}
+                      {loadingAll ? "..." : productosVendidosHoy.length.toString()}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">Productos comprados hoy</p>
                     <div className="flex items-center mt-2">
@@ -436,7 +415,7 @@ export default function Home() {
                 {/* Historial de productos dentro de la card */}
                 <div className="mt-4 pt-4 border-t border-slate-200">
                   <p className="text-xs font-medium text-slate-600 mb-2">Productos más vendidos:</p>
-                  {loadingDetalles ? (
+                  {loadingAll ? (
                     <div className="text-center py-4">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-600 mx-auto"></div>
                     </div>
