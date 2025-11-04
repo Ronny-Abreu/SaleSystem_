@@ -13,6 +13,18 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@tsparticles/react'],
   },
+  async rewrites() {
+    // Reverse proxy
+    if (process.env.NODE_ENV === "production") {
+      return [
+        {
+          source: "/api/:path*",
+          destination: "https://salesystem-production-0d90.up.railway.app/api/:path*",
+        },
+      ];
+    }
+    return [];
+  },
   async headers() {
     return [
       {

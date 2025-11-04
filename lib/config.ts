@@ -1,10 +1,9 @@
 // Configuración centralizada de la API
 export const API_BASE_URL =
   process.env.NODE_ENV === "production"
-    ? "https://salesystem-production-0d90.up.railway.app/api"
+    ? "/api"
     : process.env.NEXT_PUBLIC_API_URL || "http://localhost/salesystem/backend/api"
 
-// URL base del backend
 export const BACKEND_BASE_URL =
   process.env.NODE_ENV === "production"
     ? "https://salesystem-production-0d90.up.railway.app"
@@ -18,12 +17,14 @@ export const API_CONFIG = {
   },
 }
 
-// Función helper para construir URLs completas
 export const buildApiUrl = (endpoint: string) => {
   return `${API_BASE_URL}/${endpoint.replace(/^\//, "")}`
 }
 
 // Función helper para construir URLs del backend
 export const buildBackendUrl = (endpoint: string) => {
+  if (process.env.NODE_ENV === "production" && endpoint.startsWith("api/")) {
+    return `/api/${endpoint.replace(/^api\//, "")}`
+  }
   return `${BACKEND_BASE_URL}/${endpoint.replace(/^\//, "")}`
 }

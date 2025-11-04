@@ -97,12 +97,13 @@ export default function Home() {
       .slice(0, 5)
   }, [facturasHoy])
 
-  // Obtener clientes únicos del día anterior
   const { facturas: facturasAyer } = useFacturas({
     fecha_desde: fechaAyer,
     fecha_hasta: fechaAyer,
+    incluir_detalles: true,
   })
 
+  // Calcular clientes únicos del día anterior
   const clientesUnicosAyer = useMemo(() => {
     const clientesSet = new Set<number>()
     facturasAyer.forEach((factura) => {
@@ -151,16 +152,9 @@ export default function Home() {
       .slice(0, 5)
   }, [detallesFacturas, productos])
 
-  // Obtener productos vendidos de ayer
-  const { facturas: facturasAyerConDetalles } = useFacturas({
-    fecha_desde: fechaAyer,
-    fecha_hasta: fechaAyer,
-    incluir_detalles: true,
-  })
-
   const productosVendidosAyer = useMemo(() => {
     let totalCantidad = 0
-    facturasAyerConDetalles.forEach((factura) => {
+    facturasAyer.forEach((factura) => {
       if (factura.detalles) {
         totalCantidad += factura.detalles.reduce(
           (sum: number, detalle: FacturaDetalle) => sum + detalle.cantidad,
@@ -169,7 +163,7 @@ export default function Home() {
       }
     })
     return totalCantidad
-  }, [facturasAyerConDetalles])
+  }, [facturasAyer])
 
   const porcentajeProductos = useMemo(() => {
     const productosHoy = productosVendidosHoy.reduce((sum, p) => sum + p.cantidadTotal, 0)

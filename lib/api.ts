@@ -8,27 +8,57 @@ interface ApiResponse<T> {
   data: T
 }
 
+const cache = new Map<string, { data: ApiResponse<any>; timestamp: number; ttl: number }>()
+
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, value] of cache.entries()) {
+    if (now > value.timestamp + value.ttl) {
+      cache.delete(key)
+    }
+  }
+}, 60000)
+
 async function apiRequest<T>(
   endpoint: string, 
   options: RequestInit = {},
-  cacheOptions?: { cache?: RequestCache; next?: { revalidate?: number } }
+  cacheOptions?: { cache?: RequestCache; next?: { revalidate?: number }; ttl?: number }
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}/${endpoint}`
+  const method = options.method || "GET"
+  const hasBody = options.body !== undefined
+
+  const cacheKey = method === "GET" ? `${method}:${url}` : null
+  const ttl = cacheOptions?.ttl || 30000
+
+  if (cacheKey && !hasBody) {
+    const cached = cache.get(cacheKey)
+    if (cached && Date.now() < cached.timestamp + cached.ttl) {
+      return cached.data as ApiResponse<T>
+    }
+  }
+
+  const headers: HeadersInit = {}
+  if (hasBody || method !== "GET") {
+    headers["Content-Type"] = "application/json"
+  }
 
   const defaultOptions: RequestInit = {
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
   }
 
   const fetchOptions: RequestInit = {
     ...defaultOptions,
     ...options,
+    headers: {
+      ...headers,
+      ...(options.headers || {}),
+    },
   }
 
-  if (cacheOptions && !options.method) {
-    fetchOptions.cache = cacheOptions.cache
+  if (cacheOptions && method === "GET") {
+    fetchOptions.cache = cacheOptions.cache || "default"
     fetchOptions.next = cacheOptions.next
   }
 
@@ -46,7 +76,18 @@ async function apiRequest<T>(
     throw new Error(errorMessage);
   }
 
-  return response.json()
+  const data = await response.json()
+
+  // Guardar en caché solo para GET requests exitosos
+  if (cacheKey && method === "GET" && response.ok) {
+    cache.set(cacheKey, {
+      data,
+      timestamp: Date.now(),
+      ttl,
+    })
+  }
+
+  return data
 }
 
 // ===== CLIENTES =====
