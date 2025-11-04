@@ -34,8 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch(buildApiUrl("auth.php"), {
         method: "GET",
         credentials: "include",
+        cache: "default",
         headers: {
-          "Content-Type": "application/json",
         },
       })
 

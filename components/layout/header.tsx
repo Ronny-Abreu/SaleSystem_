@@ -1,7 +1,15 @@
 "use client"
 
 import { Search } from "lucide-react"
-import { NotificationDropdown } from "@/components/notifications/notification-dropdown"
+import dynamic from "next/dynamic"
+
+const NotificationDropdown = dynamic(
+  () => import("@/components/notifications/notification-dropdown").then((mod) => ({ default: mod.NotificationDropdown })),
+  { 
+    ssr: false,
+    loading: () => <div className="w-8 h-8" />
+  }
+)
 
 interface HeaderProps {
   title?: string;

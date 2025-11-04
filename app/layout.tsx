@@ -34,9 +34,13 @@ export default function RootLayout({
         ) : null}
         
         {process.env.NODE_ENV === "production" && (
+          <link rel="prefetch" href="/api/productos.php" as="fetch" crossOrigin="use-credentials" />
+        )}
+        
+        {process.env.NODE_ENV === "production" && (
           <>
-            <link rel="prefetch" href="/api/auth.php" as="fetch" crossOrigin="use-credentials" />
-            <link rel="prefetch" href="/api/productos.php" as="fetch" crossOrigin="use-credentials" />
+            <link rel="dns-prefetch" href="https://vercel.live" />
+            <link rel="preconnect" href="https://vercel.live" crossOrigin="anonymous" />
           </>
         )}
         

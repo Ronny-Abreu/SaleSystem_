@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@tsparticles/react'],
   },
+  productionBrowserSourceMaps: false,
+  poweredByHeader: false,
   async rewrites() {
     // Reverse proxy
     if (process.env.NODE_ENV === "production") {
