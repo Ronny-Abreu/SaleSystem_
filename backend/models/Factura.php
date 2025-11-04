@@ -148,7 +148,7 @@ class Factura {
     }
 
     // Leer todas las facturas
-    public function read($fecha_desde = null, $fecha_hasta = null, $estado = null) {
+    public function read($fecha_desde = null, $fecha_hasta = null, $estado = null, $cliente_id = null) {
         $query = "SELECT f.*, c.codigo as cliente_codigo, c.nombre as cliente_nombre 
                   FROM " . $this->table_name . " f 
                   LEFT JOIN clientes c ON f.cliente_id = c.id 
@@ -171,6 +171,11 @@ class Factura {
             $params[':estado'] = $estado;
         }
         
+        if ($cliente_id) {
+            $query .= " AND f.cliente_id = :cliente_id";
+            $params[':cliente_id'] = $cliente_id;
+        }
+        
         $query .= " ORDER BY f.created_at DESC";
         
         $stmt = $this->conn->prepare($query);
@@ -181,6 +186,64 @@ class Factura {
         
         $stmt->execute();
         return $stmt;
+    }
+
+    // Leer facturas con detalles incluidos
+    public function readWithDetails($fecha_desde = null, $fecha_hasta = null, $estado = null, $cliente_id = null) {
+
+        $stmt = $this->read($fecha_desde, $fecha_hasta, $estado, $cliente_id);
+        $facturas = array();
+        $factura_ids = array();
+        
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $factura_ids[] = $row['id'];
+            $facturas[$row['id']] = array(
+                "id" => $row['id'],
+                "numero_factura" => $row['numero_factura'],
+                "cliente_id" => $row['cliente_id'],
+                "fecha" => $row['fecha'],
+                "subtotal" => floatval($row['subtotal']),
+                "total" => floatval($row['total']),
+                "comentario" => $row['comentario'],
+                "estado" => $row['estado'],
+                "created_at" => $row['created_at'],
+                "updated_at" => $row['updated_at'],
+                "cliente" => array(
+                    "codigo" => $row['cliente_codigo'],
+                    "nombre" => $row['cliente_nombre']
+                ),
+                "detalles" => array()
+            );
+        }
+        
+        if (!empty($factura_ids)) {
+            $ids_string = implode(',', array_map('intval', $factura_ids));
+            $query = "SELECT fd.*, p.descripcion as producto_descripcion
+                      FROM " . $this->detalles_table . " fd
+                      LEFT JOIN productos p ON fd.producto_id = p.id
+                      WHERE fd.factura_id IN (" . $ids_string . ")
+                      ORDER BY fd.factura_id, fd.id";
+            
+            $stmt_detalles = $this->conn->prepare($query);
+            $stmt_detalles->execute();
+            
+            while ($row_detalle = $stmt_detalles->fetch(PDO::FETCH_ASSOC)) {
+                $factura_id = $row_detalle['factura_id'];
+                if (isset($facturas[$factura_id])) {
+                    $facturas[$factura_id]['detalles'][] = array(
+                        'id' => $row_detalle['id'],
+                        'producto_id' => $row_detalle['producto_id'],
+                        'nombre_producto' => $row_detalle['nombre_producto'],
+                        'cantidad' => intval($row_detalle['cantidad']),
+                        'precio_unitario' => floatval($row_detalle['precio_unitario']),
+                        'total_linea' => floatval($row_detalle['total_linea']),
+                        'producto_descripcion' => $row_detalle['producto_descripcion']
+                    );
+                }
+            }
+        }
+        
+        return array_values($facturas);
     }
 
     // Buscar factura por ID con detalles

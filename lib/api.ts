@@ -137,6 +137,8 @@ export const facturasApi = {
     fecha_desde?: string
     fecha_hasta?: string
     estado?: string
+    cliente_id?: number
+    incluir_detalles?: boolean
   }): Promise<ApiResponse<Factura[]>> => {
     let endpoint = "facturas.php"
     if (filtros) {
@@ -144,6 +146,8 @@ export const facturasApi = {
       if (filtros.fecha_desde) params.append("fecha_desde", filtros.fecha_desde)
       if (filtros.fecha_hasta) params.append("fecha_hasta", filtros.fecha_hasta)
       if (filtros.estado) params.append("estado", filtros.estado)
+      if (filtros.cliente_id) params.append("cliente_id", filtros.cliente_id.toString())
+      if (filtros.incluir_detalles) params.append("incluir_detalles", "true")
 
       if (params.toString()) {
         endpoint += `?${params.toString()}`

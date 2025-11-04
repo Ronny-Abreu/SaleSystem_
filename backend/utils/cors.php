@@ -33,6 +33,9 @@ function setCorsHeaders() {
     header("Access-Control-Allow-Credentials: true");
     header("Access-Control-Max-Age: 86400"); // Cache preflight por 24 horas
     
+    header("X-Content-Type-Options: nosniff");
+    header("X-Frame-Options: SAMEORIGIN");
+    
     // Headers de respuesta
     header("Content-Type: application/json; charset=UTF-8");
     header("Vary: Origin");

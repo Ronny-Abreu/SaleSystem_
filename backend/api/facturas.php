@@ -250,27 +250,33 @@ try {
                 $fecha_desde = $_GET['fecha_desde'] ?? null;
                 $fecha_hasta = $_GET['fecha_hasta'] ?? null;
                 $estado = $_GET['estado'] ?? null;
+                $cliente_id = isset($_GET['cliente_id']) ? intval($_GET['cliente_id']) : null;
+                $incluir_detalles = isset($_GET['incluir_detalles']) && $_GET['incluir_detalles'] === 'true';
                 
-                $stmt = $factura->read($fecha_desde, $fecha_hasta, $estado);
-                $facturas = array();
-                
-                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    $facturas[] = array(
-                        "id" => $row['id'],
-                        "numero_factura" => $row['numero_factura'],
-                        "cliente_id" => $row['cliente_id'],
-                        "fecha" => $row['fecha'],
-                        "subtotal" => floatval($row['subtotal']),
-                        "total" => floatval($row['total']),
-                        "comentario" => $row['comentario'],
-                        "estado" => $row['estado'],
-                        "created_at" => $row['created_at'],
-                        "updated_at" => $row['updated_at'],
-                        "cliente" => array(
-                            "codigo" => $row['cliente_codigo'],
-                            "nombre" => $row['cliente_nombre']
-                        )
-                    );
+                if ($incluir_detalles) {
+                    $facturas = $factura->readWithDetails($fecha_desde, $fecha_hasta, $estado, $cliente_id);
+                } else {
+                    $stmt = $factura->read($fecha_desde, $fecha_hasta, $estado, $cliente_id);
+                    $facturas = array();
+                    
+                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                        $facturas[] = array(
+                            "id" => $row['id'],
+                            "numero_factura" => $row['numero_factura'],
+                            "cliente_id" => $row['cliente_id'],
+                            "fecha" => $row['fecha'],
+                            "subtotal" => floatval($row['subtotal']),
+                            "total" => floatval($row['total']),
+                            "comentario" => $row['comentario'],
+                            "estado" => $row['estado'],
+                            "created_at" => $row['created_at'],
+                            "updated_at" => $row['updated_at'],
+                            "cliente" => array(
+                                "codigo" => $row['cliente_codigo'],
+                                "nombre" => $row['cliente_nombre']
+                            )
+                        );
+                    }
                 }
                 
                 ApiResponse::success($facturas, "Facturas obtenidas exitosamente");
