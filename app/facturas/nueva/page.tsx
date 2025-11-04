@@ -376,7 +376,10 @@ export default function NuevaFactura() {
                     {/* Botones de info - buscar - crear cliente */}
                     <div className="flex items-center space-x-2 md:order-last flex-wrap">
                       <div className="group relative">
-                        <button className="p-1 text-slate-400 hover:text-slate-600 transition-colors">
+                        <button 
+                          aria-label="Información sobre selección de cliente"
+                          className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
                           <Info size={16} />
                         </button>
                         <div className="absolute -left-5 md:-left-4 top-8 w-64 p-3 bg-slate-800 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
@@ -474,6 +477,7 @@ export default function NuevaFactura() {
                     <div className="relative md:hidden">
                       <button
                         onClick={agregarItem}
+                        aria-label="Agregar artículo"
                         className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-all duration-1000 animate-pulse hover:animate-none shadow-lg"
                       >
                         <Plus size={20} />

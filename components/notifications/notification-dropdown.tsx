@@ -75,11 +75,13 @@ export function NotificationDropdown() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={`Notificaciones${cantidadNoLeidas > 0 ? `, ${cantidadNoLeidas} sin leer` : ''}`}
+        aria-expanded={isOpen}
         className="relative p-2 text-slate-600 hover:text-slate-900 transition-colors"
       >
         <Bell size={20} />
         {cantidadNoLeidas > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center" aria-label={`${cantidadNoLeidas} notificaciones sin leer`}>
             {cantidadNoLeidas > 9 ? "9+" : cantidadNoLeidas}
           </span>
         )}
