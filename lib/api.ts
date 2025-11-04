@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/lib/config"
 import type { Cliente, Producto, Factura } from "@/lib/types"
+import { cachedFetch, generateCacheKey, invalidateCache } from "@/lib/cache"
 
 // Tipos para las respuestas de la API
 interface ApiResponse<T> {
@@ -8,34 +9,83 @@ interface ApiResponse<T> {
   data: T
 }
 
-const cache = new Map<string, { data: ApiResponse<any>; timestamp: number; ttl: number }>()
-
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, value] of cache.entries()) {
-    if (now > value.timestamp + value.ttl) {
-      cache.delete(key)
-    }
-  }
-}, 60000)
-
 async function apiRequest<T>(
   endpoint: string, 
   options: RequestInit = {},
-  cacheOptions?: { cache?: RequestCache; next?: { revalidate?: number }; ttl?: number }
+  cacheOptions?: { cache?: RequestCache; next?: { revalidate?: number }; ttl?: number },
+  params?: Record<string, any>
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}/${endpoint}`
   const method = options.method || "GET"
   const hasBody = options.body !== undefined
 
-  const cacheKey = method === "GET" ? `${method}:${url}` : null
-  const ttl = cacheOptions?.ttl || 30000
-
-  if (cacheKey && !hasBody) {
-    const cached = cache.get(cacheKey)
-    if (cached && Date.now() < cached.timestamp + cached.ttl) {
-      return cached.data as ApiResponse<T>
+  const requestParams = params || (() => {
+    // Parsear query params sin depender del dominio
+    const [, queryString] = endpoint.split('?')
+    const extracted: Record<string, any> = {}
+    if (queryString) {
+      const searchParams = new URLSearchParams(queryString)
+      searchParams.forEach((value, key) => {
+        extracted[key] = value
+      })
     }
+    return extracted
+  })()
+
+  if (method === "GET" && !hasBody) {
+    return cachedFetch(
+      async () => {
+        const headers: HeadersInit = {}
+        const defaultOptions: RequestInit = {
+          credentials: "include",
+          headers,
+        }
+
+        const fetchOptions: RequestInit = {
+          ...defaultOptions,
+          ...options,
+          headers: {
+            ...headers,
+            ...(options.headers || {}),
+          },
+        }
+
+        if (cacheOptions) {
+          fetchOptions.cache = cacheOptions.cache || "default"
+          fetchOptions.next = cacheOptions.next
+        }
+
+        const response = await fetch(url, fetchOptions)
+
+        if (!response.ok) {
+          let errorMessage = `HTTP error! status: ${response.status}`
+          try {
+            const errorData = await response.json()
+            if (errorData && errorData.message) {
+              errorMessage = errorData.message
+            }
+          } catch (e) {
+          }
+          throw new Error(errorMessage)
+        }
+
+        return await response.json()
+      },
+      endpoint,
+      method,
+      requestParams,
+      cacheOptions?.ttl
+    )
+  }
+
+  if (hasBody && endpoint.includes("facturas.php")) {
+    invalidateCache("facturas.php")
+  }
+  if (hasBody && endpoint.includes("productos.php")) {
+    invalidateCache("productos.php")
+  }
+  if (hasBody && endpoint.includes("clientes.php")) {
+    invalidateCache("clientes.php")
   }
 
   const headers: HeadersInit = {}
@@ -57,37 +107,21 @@ async function apiRequest<T>(
     },
   }
 
-  if (cacheOptions && method === "GET") {
-    fetchOptions.cache = cacheOptions.cache || "default"
-    fetchOptions.next = cacheOptions.next
-  }
-
   const response = await fetch(url, fetchOptions)
 
   if (!response.ok) {
-    let errorMessage = `HTTP error! status: ${response.status}`;
+    let errorMessage = `HTTP error! status: ${response.status}`
     try {
-      const errorData = await response.json();
+      const errorData = await response.json()
       if (errorData && errorData.message) {
-        errorMessage = errorData.message;
+        errorMessage = errorData.message
       }
     } catch (e) {
     }
-    throw new Error(errorMessage);
+    throw new Error(errorMessage)
   }
 
-  const data = await response.json()
-
-  // Guardar en caché solo para GET requests exitosos
-  if (cacheKey && method === "GET" && response.ok) {
-    cache.set(cacheKey, {
-      data,
-      timestamp: Date.now(),
-      ttl,
-    })
-  }
-
-  return data
+  return await response.json()
 }
 
 // ===== CLIENTES =====
@@ -109,6 +143,7 @@ export const clientesApi = {
 
   // Crear nuevo cliente
   create: async (cliente: Omit<Cliente, "id" | "created_at" | "updated_at">): Promise<ApiResponse<Cliente>> => {
+    invalidateCache("clientes.php")
     return apiRequest<Cliente>("clientes.php", {
       method: "POST",
       body: JSON.stringify(cliente),
@@ -117,6 +152,7 @@ export const clientesApi = {
 
   // Actualizar cliente
   update: async (id: number, cliente: Partial<Cliente>): Promise<ApiResponse<Cliente>> => {
+    invalidateCache("clientes.php")
     return apiRequest<Cliente>(`clientes.php?id=${id}`, {
       method: "PUT",
       body: JSON.stringify(cliente),
@@ -125,6 +161,8 @@ export const clientesApi = {
 
   // Eliminar cliente
   delete: async (id: number): Promise<ApiResponse<null>> => {
+    invalidateCache("clientes.php")
+    invalidateCache("facturas.php") // Las facturas también pueden verse afectadas
     return apiRequest<null>(`clientes.php?id=${id}`, {
       method: "DELETE",
     })
@@ -149,6 +187,7 @@ export const productosApi = {
 
   // Crear nuevo producto
   create: async (producto: Omit<Producto, "id" | "created_at" | "updated_at">): Promise<ApiResponse<Producto>> => {
+    invalidateCache("productos.php")
     return apiRequest<Producto>("productos.php", {
       method: "POST",
       body: JSON.stringify(producto),
@@ -157,6 +196,7 @@ export const productosApi = {
 
   // Actualizar producto
   update: async (id: number, producto: Partial<Producto>): Promise<ApiResponse<Producto>> => {
+    invalidateCache("productos.php")
     return apiRequest<Producto>(`productos.php?id=${id}`, {
       method: "PUT",
       body: JSON.stringify(producto),
@@ -165,6 +205,7 @@ export const productosApi = {
 
   // Eliminar producto (soft delete)
   delete: async (id: number): Promise<ApiResponse<null>> => {
+    invalidateCache("productos.php")
     return apiRequest<null>(`productos.php?id=${id}`, {
       method: "DELETE",
     })
@@ -182,19 +223,24 @@ export const facturasApi = {
     incluir_detalles?: boolean
   }): Promise<ApiResponse<Factura[]>> => {
     let endpoint = "facturas.php"
+    const params: Record<string, any> = {}
+    
     if (filtros) {
-      const params = new URLSearchParams()
-      if (filtros.fecha_desde) params.append("fecha_desde", filtros.fecha_desde)
-      if (filtros.fecha_hasta) params.append("fecha_hasta", filtros.fecha_hasta)
-      if (filtros.estado) params.append("estado", filtros.estado)
-      if (filtros.cliente_id) params.append("cliente_id", filtros.cliente_id.toString())
-      if (filtros.incluir_detalles) params.append("incluir_detalles", "true")
+      if (filtros.fecha_desde) params.fecha_desde = filtros.fecha_desde
+      if (filtros.fecha_hasta) params.fecha_hasta = filtros.fecha_hasta
+      if (filtros.estado) params.estado = filtros.estado
+      if (filtros.cliente_id) params.cliente_id = filtros.cliente_id.toString()
+      if (filtros.incluir_detalles) params.incluir_detalles = "true"
 
-      if (params.toString()) {
-        endpoint += `?${params.toString()}`
+      const urlParams = new URLSearchParams()
+      Object.entries(params).forEach(([key, value]) => {
+        urlParams.append(key, String(value))
+      })
+      if (urlParams.toString()) {
+        endpoint += `?${urlParams.toString()}`
       }
     }
-    return apiRequest<Factura[]>(endpoint)
+    return apiRequest<Factura[]>(endpoint, {}, undefined, params)
   },
 
   // Buscar factura por ID
@@ -221,6 +267,9 @@ export const facturasApi = {
       precio_unitario: number
     }>
   }): Promise<ApiResponse<Factura>> => {
+    invalidateCache("facturas.php")
+    invalidateCache("estadisticas")
+    invalidateCache("productos.php")
     return apiRequest<Factura>("facturas.php", {
       method: "POST",
       body: JSON.stringify(factura),
@@ -229,6 +278,7 @@ export const facturasApi = {
 
   // Actualizar estado de factura
   updateEstado: async (id: number, estado: string): Promise<ApiResponse<null>> => {
+    invalidateCache("facturas.php")
     return apiRequest<null>(`facturas.php?id=${id}`, {
       method: "PUT",
       body: JSON.stringify({ estado }),
@@ -246,10 +296,12 @@ export const facturasApi = {
     }>
   > => {
     let endpoint = "facturas.php?estadisticas=true"
+    const params: Record<string, any> = { estadisticas: "true" }
     if (fecha) {
       endpoint += `&fecha=${fecha}`
+      params.fecha = fecha
     }
-    return apiRequest(endpoint)
+    return apiRequest(endpoint, {}, undefined, params)
   },
 }
 
