@@ -22,45 +22,33 @@ export default function Home() {
 
   const { estadisticas: estadisticasHoy, loading: loadingStatsHoy } = useEstadisticas(hoy)
   const { estadisticas: estadisticasAyer, loading: loadingStatsAyer } = useEstadisticas(fechaAyer)
+  
   const { facturas: facturasHoy, loading: loadingFacturas } = useFacturas({
     fecha_desde: hoy,
     fecha_hasta: hoy,
+    incluir_detalles: true,
   })
+  
   const { productos } = useProductos()
   const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
   const [detallesFacturas, setDetallesFacturas] = useState<Map<number, FacturaDetalle[]>>(new Map())
   const [loadingDetalles, setLoadingDetalles] = useState(false)
 
-  // Obtener detalles de todas las facturas de hoy
   useEffect(() => {
-    if (!isAuthenticated || facturasHoy.length === 0) return
-
-    const fetchDetalles = async () => {
-      setLoadingDetalles(true)
+    if (facturasHoy.length > 0) {
       const nuevosDetalles = new Map<number, FacturaDetalle[]>()
-
-      try {
-        await Promise.all(
-          facturasHoy.map(async (factura) => {
-            try {
-              const response = await authenticatedRequest(() => facturasApi.getById(factura.id))
-              if (response.success && response.data.detalles) {
-                nuevosDetalles.set(factura.id, response.data.detalles)
-              }
-            } catch (err) {
-              console.error(`Error obteniendo detalles de factura ${factura.id}:`, err)
-            }
-          }),
-        )
-      } finally {
-        setLoadingDetalles(false)
-        setDetallesFacturas(nuevosDetalles)
-      }
+      facturasHoy.forEach((factura) => {
+        if (factura.detalles && factura.detalles.length > 0) {
+          nuevosDetalles.set(factura.id, factura.detalles)
+        }
+      })
+      setDetallesFacturas(nuevosDetalles)
+      setLoadingDetalles(false)
+    } else if (!loadingFacturas) {
+      setLoadingDetalles(false)
     }
-
-    fetchDetalles()
-  }, [facturasHoy, isAuthenticated, authenticatedRequest])
+  }, [facturasHoy, loadingFacturas])
 
   // Calcular ingresos y porcentaje
   const ingresosHoy = estadisticasHoy?.total_ingresos || 0
@@ -110,34 +98,20 @@ export default function Home() {
   }, [facturasHoy])
 
   // Obtener clientes únicos del día anterior
-  const [clientesUnicosAyer, setClientesUnicosAyer] = useState(0)
-  useEffect(() => {
-    if (!authChecked || !isAuthenticated) return
+  const { facturas: facturasAyer } = useFacturas({
+    fecha_desde: fechaAyer,
+    fecha_hasta: fechaAyer,
+  })
 
-    const fetchClientesAyer = async () => {
-      try {
-        const response = await authenticatedRequest(() =>
-          facturasApi.getAll({
-            fecha_desde: fechaAyer,
-            fecha_hasta: fechaAyer,
-          }),
-        )
-        if (response.success) {
-          const clientesSet = new Set<number>()
-          response.data.forEach((factura: Factura) => {
-            if (factura.cliente_id) {
-              clientesSet.add(factura.cliente_id)
-            }
-          })
-          setClientesUnicosAyer(clientesSet.size)
-        }
-      } catch (err) {
-        console.error("Error obteniendo clientes de ayer:", err)
+  const clientesUnicosAyer = useMemo(() => {
+    const clientesSet = new Set<number>()
+    facturasAyer.forEach((factura) => {
+      if (factura.cliente_id) {
+        clientesSet.add(factura.cliente_id)
       }
-    }
-
-    fetchClientesAyer()
-  }, [authChecked, isAuthenticated, authenticatedRequest, fechaAyer])
+    })
+    return clientesSet.size
+  }, [facturasAyer])
 
   const porcentajeClientes = useMemo(() => {
     if (clientesUnicosAyer === 0) {
@@ -177,48 +151,25 @@ export default function Home() {
       .slice(0, 5)
   }, [detallesFacturas, productos])
 
-  // Calcular porcentaje de productos vendidos
-  const [productosVendidosAyer, setProductosVendidosAyer] = useState(0)
-  useEffect(() => {
-    if (!authChecked || !isAuthenticated) return
+  // Obtener productos vendidos de ayer
+  const { facturas: facturasAyerConDetalles } = useFacturas({
+    fecha_desde: fechaAyer,
+    fecha_hasta: fechaAyer,
+    incluir_detalles: true,
+  })
 
-    const fetchProductosAyer = async () => {
-      try {
-        const response = await authenticatedRequest(() =>
-          facturasApi.getAll({
-            fecha_desde: fechaAyer,
-            fecha_hasta: fechaAyer,
-          }),
+  const productosVendidosAyer = useMemo(() => {
+    let totalCantidad = 0
+    facturasAyerConDetalles.forEach((factura) => {
+      if (factura.detalles) {
+        totalCantidad += factura.detalles.reduce(
+          (sum: number, detalle: FacturaDetalle) => sum + detalle.cantidad,
+          0,
         )
-        if (response.success) {
-          let totalCantidad = 0
-          // Obtener detalles de todas las facturas del día anterior
-          await Promise.all(
-            response.data.map(async (factura: Factura) => {
-              try {
-                const detalleResponse = await authenticatedRequest(() => facturasApi.getById(factura.id))
-                if (detalleResponse.success && detalleResponse.data.detalles) {
-                  // Sumar la cantidad total de unidades vendidas
-                  const cantidadTotal = detalleResponse.data.detalles.reduce(
-                    (sum: number, detalle: FacturaDetalle) => sum + detalle.cantidad,
-                    0,
-                  )
-                  totalCantidad += cantidadTotal
-                }
-              } catch (err) {
-                console.error(`Error obteniendo detalles de factura ${factura.id}:`, err)
-              }
-            }),
-          )
-          setProductosVendidosAyer(totalCantidad)
-        }
-      } catch (err) {
-        console.error("Error obteniendo productos de ayer:", err)
       }
-    }
-
-    fetchProductosAyer()
-  }, [authChecked, isAuthenticated, authenticatedRequest, fechaAyer])
+    })
+    return totalCantidad
+  }, [facturasAyerConDetalles])
 
   const porcentajeProductos = useMemo(() => {
     const productosHoy = productosVendidosHoy.reduce((sum, p) => sum + p.cantidadTotal, 0)
@@ -253,7 +204,6 @@ export default function Home() {
   // URL para facturas de hoy
   const urlFacturasHoy = `/facturas?fecha_desde=${hoy}&fecha_hasta=${hoy}`
 
-  // Calcular si el porcentaje es positivo o negativo
   const esPositivo = (porcentaje: string) => {
     return !porcentaje.startsWith("-") && porcentaje !== "0%"
   }

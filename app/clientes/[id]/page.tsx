@@ -81,12 +81,10 @@ export default function DetalleCliente() {
           return
         }
 
-        // Cargar facturas del cliente
         setLoadingFacturas(true)
-        const facturasResponse = await authenticatedRequest(() => facturasApi.getAll())
+        const facturasResponse = await authenticatedRequest(() => facturasApi.getAll({ cliente_id: clienteId }))
         if (facturasResponse.success) {
-          const facturasCliente = facturasResponse.data.filter((factura: Factura) => factura.cliente_id === clienteId)
-          setFacturas(facturasCliente)
+          setFacturas(facturasResponse.data)
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido")

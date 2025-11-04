@@ -9,6 +9,8 @@ export function useFacturas(filtros?: {
   fecha_desde?: string
   fecha_hasta?: string
   estado?: string
+  cliente_id?: number
+  incluir_detalles?: boolean
 }) {
   const [facturas, setFacturas] = useState<Factura[]>([])
   const [loading, setLoading] = useState(true)
@@ -86,7 +88,7 @@ export function useFacturas(filtros?: {
     if (authChecked) {
       fetchFacturas()
     }
-  }, [authChecked, isAuthenticated, filtros?.fecha_desde, filtros?.fecha_hasta, filtros?.estado])
+  }, [authChecked, isAuthenticated, filtros?.fecha_desde, filtros?.fecha_hasta, filtros?.estado, filtros?.cliente_id, filtros?.incluir_detalles])
 
   return {
     facturas,
