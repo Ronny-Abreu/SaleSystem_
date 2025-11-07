@@ -50,31 +50,11 @@ if ($mysql_url) {
         
         // Probar una consulta simple
         $stmt = $pdo->query("SELECT 1 as test");
-        $result = $stmt->fetch();
         echo "✅ Consulta de prueba exitosa: " . $result['test'] . "<br>";
         
-    } catch (PDOException $e) {
-        $errorMessage = $e->getMessage();
-        $errorCode = $e->getCode();
-        
-        // Detectar si MySQL está apagado
-        $isMySQLOffline = (
-            strpos($errorMessage, 'SQLSTATE[HY000] [2002]') !== false &&
-            strpos($errorMessage, 'No connection could be made because the target machine actively refused it') !== false
-        ) || (
-            $errorCode == 2002 &&
-            strpos($errorMessage, 'actively refused it') !== false
-        );
-        
-        if ($isMySQLOffline) {
-            echo "❌ <strong>Error: El servidor está apagado o no está disponible. Recarga la página para intentar nuevamente.</strong><br>";
-            echo "Por favor, verifica que el servicio de base de datos esté en ejecución.<br>";
-            echo "<small>Error original: " . htmlspecialchars($errorMessage) . "</small><br>";
-        } else {
-            echo "❌ Error: " . htmlspecialchars($errorMessage) . "<br>";
-        }
+
     } catch (Exception $e) {
-        echo "❌ Error: " . htmlspecialchars($e->getMessage()) . "<br>";
+        echo "❌ Error: " . $e->getMessage() . "<br>";
     }
 } else {
     echo "❌ No se encontró MYSQL_URL<br>";
