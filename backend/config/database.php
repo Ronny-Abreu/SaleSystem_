@@ -108,20 +108,57 @@ class Database {
             );
             
         } catch(PDOException $exception) {
+            $errorMessage = $exception->getMessage();
+            $errorCode = $exception->getCode();
+            
+            // Detectar si MySQL está apagado
+            $isMySQLOffline = (
+                strpos($errorMessage, 'SQLSTATE[HY000] [2002]') !== false &&
+                strpos($errorMessage, 'No connection could be made because the target machine actively refused it') !== false
+            ) || (
+                $errorCode == 2002 &&
+                strpos($errorMessage, 'actively refused it') !== false
+            );
+            
             http_response_code(500);
-            echo json_encode([
-                "error" => true,
-                "message" => "Error de conexión a la base de datos: " . $exception->getMessage(),
-                "debug" => [
-                    "host" => !empty($this->host) ? $this->host : false,
-                    "port" => !empty($this->port) ? $this->port : false,
-                    "database" => !empty($this->db_name) ? $this->db_name : false,
-                    "username" => !empty($this->username) ? $this->username : false,
-                    "is_local" => $this->isLocalEnvironment(),
-                    "has_mysql_url" => !empty($_ENV['MYSQL_URL']) || !empty(getenv('MYSQL_URL')),
-                    "has_railway_env" => !empty($_ENV['RAILWAY_ENVIRONMENT']) || !empty(getenv('RAILWAY_ENVIRONMENT'))
-                ]
-            ]);
+            
+            if ($isMySQLOffline) {
+                $message = "El servidor está apagado o no está disponible. Recarga la página para intentar nuevamente.";
+                $solution = $this->isLocalEnvironment() 
+                    ? "Por favor, inicia el servicio MySQL desde el panel de control de XAMPP."
+                    : "Por favor, verifica que el servicio de base de datos esté en ejecución.";
+                
+                echo json_encode([
+                    "error" => true,
+                    "message" => $message,
+                    "solution" => $solution,
+                    "error_type" => "mysql_offline",
+                    "original_error" => $errorMessage,
+                    "debug" => [
+                        "host" => !empty($this->host) ? $this->host : false,
+                        "port" => !empty($this->port) ? $this->port : false,
+                        "database" => !empty($this->db_name) ? $this->db_name : false,
+                        "username" => !empty($this->username) ? $this->username : false,
+                        "is_local" => $this->isLocalEnvironment(),
+                        "has_mysql_url" => !empty($_ENV['MYSQL_URL']) || !empty(getenv('MYSQL_URL')),
+                        "has_railway_env" => !empty($_ENV['RAILWAY_ENVIRONMENT']) || !empty(getenv('RAILWAY_ENVIRONMENT'))
+                    ]
+                ]);
+            } else {
+                echo json_encode([
+                    "error" => true,
+                    "message" => "Error de conexión a la base de datos: " . $errorMessage,
+                    "debug" => [
+                        "host" => !empty($this->host) ? $this->host : false,
+                        "port" => !empty($this->port) ? $this->port : false,
+                        "database" => !empty($this->db_name) ? $this->db_name : false,
+                        "username" => !empty($this->username) ? $this->username : false,
+                        "is_local" => $this->isLocalEnvironment(),
+                        "has_mysql_url" => !empty($_ENV['MYSQL_URL']) || !empty(getenv('MYSQL_URL')),
+                        "has_railway_env" => !empty($_ENV['RAILWAY_ENVIRONMENT']) || !empty(getenv('RAILWAY_ENVIRONMENT'))
+                    ]
+                ]);
+            }
             exit();
         }
         
