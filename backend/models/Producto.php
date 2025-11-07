@@ -132,13 +132,6 @@ class Producto {
 
     // Actualizar producto
     public function update() {
-        $query = "UPDATE " . $this->table_name . " 
-                  SET nombre=:nombre, precio=:precio, descripcion=:descripcion, 
-                      stock=:stock, activo=:activo, categoria_id=:categoria_id, updated_at=CURRENT_TIMESTAMP
-                  WHERE id=:id";
-
-        $stmt = $this->conn->prepare($query);
-
         // Limpiar datos
         $this->nombre = htmlspecialchars(strip_tags($this->nombre));
         $this->precio = htmlspecialchars(strip_tags($this->precio));
@@ -147,6 +140,17 @@ class Producto {
         $this->activo = $this->activo ? 1 : 0;
         $this->categoria_id = $this->categoria_id ? htmlspecialchars(strip_tags($this->categoria_id)) : null;
         $this->id = htmlspecialchars(strip_tags($this->id));
+
+        if ($this->stock <= 0) {
+            $this->activo = 0;
+        }
+
+        $query = "UPDATE " . $this->table_name . " 
+                  SET nombre=:nombre, precio=:precio, descripcion=:descripcion, 
+                      stock=:stock, activo=:activo, categoria_id=:categoria_id, updated_at=CURRENT_TIMESTAMP
+                  WHERE id=:id";
+
+        $stmt = $this->conn->prepare($query);
 
         // Bind valores
         $stmt->bindParam(":nombre", $this->nombre);
@@ -181,7 +185,22 @@ class Producto {
         $stmt->bindParam(":cantidad", $cantidad);
         $stmt->bindParam(":id", $this->id);
         
-        return $stmt->execute() && $stmt->rowCount() > 0;
+        $result = $stmt->execute() && $stmt->rowCount() > 0;
+        
+        if ($result) {
+            if ($this->findById($this->id)) {
+                if ($this->stock <= 0) {
+                    $query_desactivar = "UPDATE " . $this->table_name . " 
+                                       SET activo = 0, updated_at=CURRENT_TIMESTAMP
+                                       WHERE id = :id";
+                    $stmt_desactivar = $this->conn->prepare($query_desactivar);
+                    $stmt_desactivar->bindParam(":id", $this->id);
+                    $stmt_desactivar->execute();
+                }
+            }
+        }
+        
+        return $result;
     }
 
     // Validar datos del producto
