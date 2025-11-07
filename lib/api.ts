@@ -277,9 +277,9 @@ export const facturasApi = {
   },
 
   // Actualizar estado de factura
-  updateEstado: async (id: number, estado: string): Promise<ApiResponse<null>> => {
+  updateEstado: async (id: number, estado: string): Promise<ApiResponse<{ cambio_pendiente_a_pagada: boolean; factura_id: number } | null>> => {
     invalidateCache("facturas.php")
-    return apiRequest<null>(`facturas.php?id=${id}`, {
+    return apiRequest<{ cambio_pendiente_a_pagada: boolean; factura_id: number } | null>(`facturas.php?id=${id}`, {
       method: "PUT",
       body: JSON.stringify({ estado }),
     })

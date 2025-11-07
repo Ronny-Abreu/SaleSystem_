@@ -368,8 +368,18 @@ try {
             }
             
             if(isset($data->estado)) {
-                if($factura->updateEstado($data->estado)) {
-                    ApiResponse::success(null, "Estado de factura actualizado exitosamente");
+                $estado_anterior = $factura->estado;
+                $nuevo_estado = $data->estado;
+                
+                if($factura->updateEstado($nuevo_estado)) {
+                    $cambio_pendiente_a_pagada = ($estado_anterior === 'pendiente' && $nuevo_estado === 'pagada');
+                    
+                    $response_data = array(
+                        'cambio_pendiente_a_pagada' => $cambio_pendiente_a_pagada,
+                        'factura_id' => $factura->id
+                    );
+                    
+                    ApiResponse::success($response_data, "Estado de factura actualizado exitosamente");
                 } else {
                     ApiResponse::error("Error al actualizar el estado de la factura");
                 }

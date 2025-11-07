@@ -4,9 +4,10 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { ArrowLeft, Printer, Check, X, Clock, ArrowRight } from "lucide-react"
+import { ArrowLeft, FileText, Check, X, Clock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { facturasApi } from "@/lib/api"
+import { buildBackendUrl } from "@/lib/config"
 import type { Factura } from "@/lib/types"
 
 type EstadoFactura = "pendiente" | "pagada" | "anulada"
@@ -50,6 +51,11 @@ export default function FacturaDetalle() {
 
       if (response.success) {
         setFactura({ ...factura, estado: nuevoEstado })
+        
+        if (response.data?.cambio_pendiente_a_pagada) {
+          const pdfUrl = buildBackendUrl(`api/facturas.php?action=generate_pdf&id=${factura.id}`)
+          window.open(pdfUrl, "_blank")
+        }
       } else {
         throw new Error(response.message)
       }
@@ -157,9 +163,15 @@ export default function FacturaDetalle() {
               </Link>
 
               <div className="flex space-x-2 md:space-x-3">
-                <button onClick={() => window.print()} className="btn-secondary flex items-center space-x-2 text-sm">
-                  <Printer size={16} />
-                  <span className="hidden sm:inline">Imprimir</span>
+                <button 
+                  onClick={() => {
+                    const pdfUrl = buildBackendUrl(`api/facturas.php?action=generate_pdf&id=${factura.id}`)
+                    window.open(pdfUrl, "_blank")
+                  }} 
+                  className="btn-secondary flex items-center space-x-2 text-sm"
+                >
+                  <FileText size={16} />
+                  <span className="hidden sm:inline">Ver PDF factura</span>
                 </button>
               </div>
             </div>
