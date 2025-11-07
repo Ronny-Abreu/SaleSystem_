@@ -17,6 +17,7 @@ export default function NuevoCliente() {
   const { siguienteCodigo, loading: loadingCodigo } = useCodigoCliente()
   
   const returnTo = searchParams.get("returnTo")
+  const fromDashboard = searchParams.get("fromDashboard") === "true"
 
   const [formData, setFormData] = useState({
     codigo: "",
@@ -66,9 +67,11 @@ export default function NuevoCliente() {
       
       // redirigir a la factura con el ID del cliente creado
       if (returnTo && clienteCreado && clienteCreado.id) {
-      
-        const separator = returnTo.includes('?') ? '&' : '?'
-        router.push(`${returnTo}${separator}clienteId=${clienteCreado.id}`)
+        const decodedReturnTo = decodeURIComponent(returnTo)
+        const separator = decodedReturnTo.includes('?') ? '&' : '?'
+        router.push(`${decodedReturnTo}${separator}clienteId=${clienteCreado.id}`)
+      } else if (fromDashboard) {
+        router.push("/?cliente_creado=true")
       } else {
         // redirigir a la página de clientes
         router.push("/clientes?success=true")
@@ -92,11 +95,25 @@ export default function NuevoCliente() {
             {/* Header con botones */}
             <div className="flex items-center justify-between mb-6">
               <button
-                onClick={() => returnTo ? router.push(returnTo) : router.push("/clientes")}
+                onClick={() => {
+                  if (returnTo) {
+                    router.push(returnTo)
+                  } else if (fromDashboard) {
+                    router.push("/")
+                  } else {
+                    router.push("/clientes")
+                  }
+                }}
                 className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft size={20} />
-                <span>{returnTo ? "Volver" : "Volver a clientes"}</span>
+                <span>
+                  {returnTo 
+                    ? "Volver" 
+                    : fromDashboard 
+                      ? "Volver al dashboard" 
+                      : "Volver a clientes"}
+                </span>
               </button>
             </div>
 
@@ -187,7 +204,15 @@ export default function NuevoCliente() {
 
                 <div className="flex flex-nowrap justify-end items-center gap-3 pt-6">
                   <button
-                    onClick={() => returnTo ? router.push(returnTo) : router.push("/clientes")}
+                    onClick={() => {
+                      if (returnTo) {
+                        router.push(returnTo)
+                      } else if (fromDashboard) {
+                        router.push("/")
+                      } else {
+                        router.push("/clientes")
+                      }
+                    }}
                     className="px-6 py-2 text-slate-600 hover:text-slate-800 transition-colors whitespace-nowrap"
                   >
                     Cancelar

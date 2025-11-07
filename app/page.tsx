@@ -195,7 +195,7 @@ export default function Home() {
               <h2 className="text-lg font-semibold text-slate-900">Acciones Rápidas</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link href="/facturas/nueva" className="card hover:shadow-md transition-shadow cursor-pointer group">
+              <Link href="/facturas/nueva?fromDashboard=true" className="card hover:shadow-md transition-shadow cursor-pointer group">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                     <Plus className="text-blue-600" size={24} />
@@ -207,7 +207,7 @@ export default function Home() {
                 </div>
               </Link>
 
-              <Link href="/clientes/nuevo" className="card hover:shadow-md transition-shadow cursor-pointer group">
+              <Link href="/clientes/nuevo?fromDashboard=true" className="card hover:shadow-md transition-shadow cursor-pointer group">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center group-hover:bg-green-100 transition-colors">
                     <Users className="text-green-600" size={24} />
@@ -219,7 +219,7 @@ export default function Home() {
                 </div>
               </Link>
 
-              <Link href="/productos/nuevo" className="card hover:shadow-md transition-shadow cursor-pointer group">
+              <Link href="/productos/nuevo?fromDashboard=true" className="card hover:shadow-md transition-shadow cursor-pointer group">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center group-hover:bg-purple-100 transition-colors">
                     <Package className="text-purple-600" size={24} />

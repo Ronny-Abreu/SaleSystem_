@@ -45,6 +45,8 @@ export default function NuevaFactura() {
 
   const fromClientesHoy = searchParams.get("fromClientesHoy") === "true"
 
+  const fromDashboard = searchParams.get("fromDashboard") === "true"
+
   const clienteIdFromUrl = searchParams.get("cliente") || searchParams.get("clienteId")
 
   useEffect(() => {
@@ -59,7 +61,12 @@ export default function NuevaFactura() {
             const params = new URLSearchParams()
             if (fromIngresosHoy) params.set('fromIngresosHoy', 'true')
             if (fromClientesHoy) params.set('fromClientesHoy', 'true')
-            if (clienteIdFromUrl) params.set('cliente', clienteIdFromUrl.toString())
+            if (fromDashboard) params.set('fromDashboard', 'true')
+            if (searchParams.get("clienteId")) {
+              params.set('clienteId', clienteIdFromUrl.toString())
+            } else if (searchParams.get("cliente")) {
+              params.set('cliente', clienteIdFromUrl.toString())
+            }
             
             const newUrl = params.toString() 
               ? `${window.location.pathname}?${params.toString()}`
@@ -72,7 +79,7 @@ export default function NuevaFactura() {
       }
     }
     loadClienteFromUrl()
-  }, [clienteIdFromUrl, cliente, buscarPorId, fromIngresosHoy, fromClientesHoy])
+  }, [clienteIdFromUrl, cliente, buscarPorId, fromIngresosHoy, fromClientesHoy, fromDashboard])
 
   // Efecto para precargar productos del carrito si viene desde la pantalla de productos
   useEffect(() => {
@@ -166,7 +173,9 @@ export default function NuevaFactura() {
   }
 
   const handleVolver = () => {
-    if (vieneDesdeProductos) {
+    if (fromDashboard) {
+      router.push('/')
+    } else if (vieneDesdeProductos) {
       router.push('/productos')
     } else if (clienteIdFromUrl && fromClientesHoy) {
 
@@ -240,7 +249,9 @@ export default function NuevaFactura() {
       window.open(pdfUrl, "_blank")
 
       // Redirigir según el origen
-      if (vieneDesdeProductos) {
+      if (fromDashboard) {
+        router.push(`/?factura_creada=true&numero=${facturaCreada.numero_factura}`)
+      } else if (vieneDesdeProductos) {
         router.push(`/productos?factura_creada=true&numero=${facturaCreada.numero_factura}`)
       } else if (clienteIdFromUrl) {
 
@@ -285,13 +296,15 @@ export default function NuevaFactura() {
                 <span className="hidden md:inline">
                   {showPreview 
                     ? "Volver a factura actual" 
-                    : (vieneDesdeProductos 
-                        ? "Volver a productos" 
-                        : (clienteIdFromUrl
-                            ? "Volver al cliente"
-                            : fromIngresosHoy 
-                              ? "Volver a Ingresos del Día" 
-                              : "Volver a facturas"))
+                    : (fromDashboard
+                        ? "Volver al dashboard"
+                        : (vieneDesdeProductos 
+                            ? "Volver a productos" 
+                            : (clienteIdFromUrl
+                                ? "Volver al cliente"
+                                : fromIngresosHoy 
+                                  ? "Volver a Ingresos del Día" 
+                                  : "Volver a facturas")))
                   }
                 </span>
                 <span className="md:hidden">Volver</span>
@@ -402,6 +415,7 @@ export default function NuevaFactura() {
                           const params: string[] = []
                           if (fromIngresosHoy) params.push('fromIngresosHoy=true')
                           if (fromClientesHoy) params.push('fromClientesHoy=true')
+                          if (fromDashboard) params.push('fromDashboard=true')
                           if (clienteIdFromUrl) params.push(`cliente=${clienteIdFromUrl}`)
                           if (params.length > 0) {
                             returnUrl += '?' + params.join('&')

@@ -6,11 +6,9 @@ import { useState } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, Save, Package } from "lucide-react"
-import Link from "next/link"
 import { useProductos } from "@/hooks/useProductos"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
-// Categorías por defecto (en una implementación real, estas vendrían de la API)
 const CATEGORIAS = [
   { id: 1, nombre: "Bebidas", color: "#3B82F6" },
   { id: 2, nombre: "Comidas", color: "#10B981" },
@@ -21,7 +19,10 @@ const CATEGORIAS = [
 
 export default function NuevoProducto() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { crearProducto } = useProductos()
+  
+  const fromDashboard = searchParams.get("fromDashboard") === "true"
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -74,7 +75,11 @@ export default function NuevoProducto() {
       }
 
       await crearProducto(productoData)
-      router.push("/productos?success=true")
+      if (fromDashboard) {
+        router.push("/?producto_creado=true")
+      } else {
+        router.push("/productos?success=true")
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
     } finally {
@@ -93,13 +98,19 @@ export default function NuevoProducto() {
           <div className="max-w-2xl mx-auto">
             {/* Header con botones */}
             <div className="flex items-center justify-between mb-6">
-              <Link
-                href="/productos"
+              <button
+                onClick={() => {
+                  if (fromDashboard) {
+                    router.push("/")
+                  } else {
+                    router.push("/productos")
+                  }
+                }}
                 className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
               >
                 <ArrowLeft size={20} />
-                <span>Volver a productos</span>
-              </Link>
+                <span>{fromDashboard ? "Volver al dashboard" : "Volver a productos"}</span>
+              </button>
             </div>
 
             {/* Formulario */}
@@ -207,12 +218,18 @@ export default function NuevoProducto() {
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-6">
-                  <Link
-                  href="/productos"
-                  className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors whitespace-nowrap text-sm md:text-base"
+                  <button
+                    onClick={() => {
+                      if (fromDashboard) {
+                        router.push("/")
+                      } else {
+                        router.push("/productos")
+                      }
+                    }}
+                    className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors whitespace-nowrap text-sm md:text-base"
                   >
-                  Cancelar
-                  </Link>
+                    Cancelar
+                  </button>
                   <button
                   type="submit"
                   disabled={loading}
