@@ -12,7 +12,6 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react', '@tsparticles/react'],
-    optimizeCss: true,
   },
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
