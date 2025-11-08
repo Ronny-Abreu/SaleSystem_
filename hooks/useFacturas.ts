@@ -2,8 +2,9 @@
 
 import { facturasApi } from "@/lib/api"
 import type { Factura } from "@/lib/types"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuthenticatedApi } from "./useAuthenticatedApi"
+import { generateCacheKey, getFromCache, setCache, invalidateCache, getCacheStrategy } from "@/lib/cache"
 
 export function useFacturas(filtros?: {
   fecha_desde?: string
@@ -17,7 +18,7 @@ export function useFacturas(filtros?: {
   const [error, setError] = useState<string | null>(null)
   const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
-  const fetchFacturas = async () => {
+  const fetchFacturas = useCallback(async (forceRefresh: boolean = false) => {
     try {
       setLoading(true)
       setError(null)
@@ -28,10 +29,36 @@ export function useFacturas(filtros?: {
         return
       }
 
+      // Generar clave de cache
+      const endpoint = "api/facturas.php"
+      const cacheKey = generateCacheKey(endpoint, "GET", filtros)
+      
+      if (!forceRefresh) {
+        const cached = getFromCache<Factura[]>(cacheKey)
+        if (cached) {
+          setFacturas(cached)
+          setLoading(false)
+
+          authenticatedRequest(() => facturasApi.getAll(filtros))
+            .then((response) => {
+              if (response.success) {
+                const ttl = getCacheStrategy(endpoint, filtros)
+                setCache(cacheKey, response.data, ttl)
+                setFacturas(response.data)
+              }
+            })
+            .catch(() => {
+            })
+          return
+        }
+      }
+
       const response = await authenticatedRequest(() => facturasApi.getAll(filtros))
 
       if (response.success) {
         setFacturas(response.data)
+        const ttl = getCacheStrategy(endpoint, filtros)
+        setCache(cacheKey, response.data, ttl)
       } else {
         setError(response.message)
       }
@@ -40,7 +67,7 @@ export function useFacturas(filtros?: {
     } finally {
       setLoading(false)
     }
-  }
+  }, [isAuthenticated, authenticatedRequest, filtros])
 
   const crearFactura = async (factura: {
     cliente_id: number
@@ -59,7 +86,9 @@ export function useFacturas(filtros?: {
       if (!isAuthenticated) throw new Error("Usuario no autenticado")
       const response = await authenticatedRequest(() => facturasApi.create(factura))
       if (response.success) {
-        await fetchFacturas()
+        invalidateCache("facturas.php")
+        invalidateCache("estadisticas")
+        await fetchFacturas(true)
         return response.data
       } else {
         throw new Error(response.message)
@@ -74,7 +103,10 @@ export function useFacturas(filtros?: {
       if (!isAuthenticated) throw new Error("Usuario no autenticado")
       const response = await authenticatedRequest(() => facturasApi.updateEstado(id, estado))
       if (response.success) {
-        await fetchFacturas()
+        // Invalidar cache de facturas
+        invalidateCache("facturas.php")
+        invalidateCache("estadisticas")
+        await fetchFacturas(true)
       } else {
         throw new Error(response.message)
       }
@@ -86,7 +118,7 @@ export function useFacturas(filtros?: {
   useEffect(() => {
     // Solo hacer fetch cuando la autenticación esté verificada
     if (authChecked) {
-      fetchFacturas()
+      fetchFacturas(false)
     }
   }, [authChecked, isAuthenticated, filtros?.fecha_desde, filtros?.fecha_hasta, filtros?.estado, filtros?.cliente_id, filtros?.incluir_detalles])
 
@@ -94,7 +126,7 @@ export function useFacturas(filtros?: {
     facturas,
     loading,
     error,
-    refetch: fetchFacturas,
+    refetch: () => fetchFacturas(true),
     crearFactura,
     actualizarEstado,
   }

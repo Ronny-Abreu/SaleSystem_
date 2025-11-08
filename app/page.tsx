@@ -20,6 +20,10 @@ export default function Home() {
     estadisticasHoy,
     estadisticasAyer,
     loading: loadingAll,
+    loadingStats,
+    loadingQuickActions,
+    statsLoaded,
+    quickActionsLoaded,
   } = useDashboardData()
 
   const detallesFacturas = useMemo(() => {
@@ -35,9 +39,9 @@ export default function Home() {
   // Calcular ingresos y porcentaje
   const ingresosHoy = estadisticasHoy?.total_ingresos || 0
   const ingresosAyer = estadisticasAyer?.total_ingresos || 0
-  const loadingStatsHoy = loadingAll
-  const loadingStatsAyer = loadingAll
-  const loadingFacturas = loadingAll
+  const loadingStatsHoy = loadingStats
+  const loadingStatsAyer = loadingStats
+  const loadingFacturas = loadingQuickActions
   const porcentajeIngresos = useMemo(() => {
     if (ingresosAyer === 0) {
       return ingresosHoy > 0 ? "+100%" : "0%"
@@ -193,6 +197,12 @@ export default function Home() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-900">Acciones Rápidas</h2>
+              {loadingQuickActions && !quickActionsLoaded && (
+                <div className="flex items-center space-x-2 text-sm text-slate-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>Cargando...</span>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Link href="/facturas/nueva?fromDashboard=true" className="card hover:shadow-md transition-shadow cursor-pointer group">
@@ -257,7 +267,7 @@ export default function Home() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-slate-600">Ingresos Hoy</p>
                     <p className="text-2xl font-bold text-slate-900 mt-1">
-                      {loadingAll ? "..." : `RD$${ingresosHoy.toLocaleString()}`}
+                      {loadingStatsHoy ? "..." : `RD$${ingresosHoy.toLocaleString()}`}
                     </p>
                     <div className="flex items-center mt-2">
                       {esPositivo(porcentajeIngresos) ? (
@@ -270,7 +280,7 @@ export default function Home() {
                           esPositivo(porcentajeIngresos) ? "text-green-600" : "text-red-600"
                         }`}
                       >
-                        {loadingAll ? "..." : porcentajeIngresos}
+                        {loadingStatsHoy ? "..." : porcentajeIngresos}
                       </span>
                     </div>
                   </div>
@@ -281,7 +291,7 @@ export default function Home() {
                 {/* Historial de ingresos dentro de la card */}
                 <div className="mt-4 pt-4 border-t border-slate-200">
                   <p className="text-xs font-medium text-slate-600 mb-2">Historial del día:</p>
-                  {loadingAll ? (
+                  {loadingQuickActions ? (
                     <div className="text-center py-4">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600 mx-auto"></div>
                     </div>
@@ -322,7 +332,7 @@ export default function Home() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-slate-600">Clientes</p>
                     <p className="text-2xl font-bold text-slate-900 mt-1">
-                      {loadingAll ? "..." : clientesUnicosHoy.toString()}
+                      {loadingQuickActions ? "..." : clientesUnicosHoy.toString()}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">Clientes únicos que compraron hoy</p>
                     <div className="flex items-center mt-2">
@@ -347,7 +357,7 @@ export default function Home() {
                 {/* Historial de clientes recientes dentro de la card */}
                 <div className="mt-4 pt-4 border-t border-slate-200">
                   <p className="text-xs font-medium text-slate-600 mb-2">Clientes recientes:</p>
-                  {loadingAll ? (
+                  {loadingQuickActions ? (
                     <div className="text-center py-4">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mx-auto"></div>
                     </div>
@@ -390,7 +400,7 @@ export default function Home() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-slate-600">Productos</p>
                     <p className="text-2xl font-bold text-slate-900 mt-1">
-                      {loadingAll ? "..." : productosVendidosHoy.length.toString()}
+                      {loadingQuickActions ? "..." : productosVendidosHoy.length.toString()}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">Productos comprados hoy</p>
                     <div className="flex items-center mt-2">
@@ -415,7 +425,7 @@ export default function Home() {
                 {/* Historial de productos dentro de la card */}
                 <div className="mt-4 pt-4 border-t border-slate-200">
                   <p className="text-xs font-medium text-slate-600 mb-2">Productos más vendidos:</p>
-                  {loadingAll ? (
+                  {loadingQuickActions ? (
                     <div className="text-center py-4">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-600 mx-auto"></div>
                     </div>

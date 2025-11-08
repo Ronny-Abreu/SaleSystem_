@@ -2,8 +2,9 @@
 
 import { clientesApi } from "@/lib/api"
 import type { Cliente } from "@/lib/types"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuthenticatedApi } from "./useAuthenticatedApi"
+import { generateCacheKey, getFromCache, setCache, invalidateCache, getCacheStrategy } from "@/lib/cache"
 
 export function useClientes() {
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -11,7 +12,7 @@ export function useClientes() {
   const [error, setError] = useState<string | null>(null)
   const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
-  const fetchClientes = async () => {
+  const fetchClientes = useCallback(async (forceRefresh: boolean = false) => {
     try {
       setLoading(true)
       setError(null)
@@ -22,10 +23,36 @@ export function useClientes() {
         return
       }
 
+      // Generar clave de cache
+      const endpoint = "api/clientes.php"
+      const cacheKey = generateCacheKey(endpoint, "GET")
+      
+      if (!forceRefresh) {
+        const cached = getFromCache<Cliente[]>(cacheKey)
+        if (cached) {
+          setClientes(cached)
+          setLoading(false)
+
+          authenticatedRequest(() => clientesApi.getAll())
+            .then((response) => {
+              if (response.success) {
+                const ttl = getCacheStrategy(endpoint)
+                setCache(cacheKey, response.data, ttl)
+                setClientes(response.data)
+              }
+            })
+            .catch(() => {
+            })
+          return
+        }
+      }
+
       const response = await authenticatedRequest(() => clientesApi.getAll())
 
       if (response.success) {
         setClientes(response.data)
+        const ttl = getCacheStrategy(endpoint)
+        setCache(cacheKey, response.data, ttl)
       } else {
         setError(response.message)
       }
@@ -34,7 +61,7 @@ export function useClientes() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [isAuthenticated, authenticatedRequest])
 
   const buscarPorCodigo = async (codigo: string): Promise<Cliente | null> => {
     try {
@@ -63,7 +90,8 @@ export function useClientes() {
       if (!isAuthenticated) throw new Error("Usuario no autenticado")
       const response = await authenticatedRequest(() => clientesApi.create(cliente))
       if (response.success) {
-        await fetchClientes() // Refrescar la lista
+        invalidateCache("clientes.php")
+        await fetchClientes(true)
         return response.data
       } else {
         throw new Error(response.message)
@@ -78,7 +106,8 @@ export function useClientes() {
       if (!isAuthenticated) throw new Error("Usuario no autenticado")
       const response = await authenticatedRequest(() => clientesApi.update(id, cliente))
       if (response.success) {
-        await fetchClientes()
+        invalidateCache("clientes.php")
+        await fetchClientes(true)
         return response.data
       } else {
         throw new Error(response.message)
@@ -93,7 +122,8 @@ export function useClientes() {
       if (!isAuthenticated) throw new Error("Usuario no autenticado")
       const response = await authenticatedRequest(() => clientesApi.delete(id))
       if (response.success) {
-        await fetchClientes()
+        invalidateCache("clientes.php")
+        await fetchClientes(true)
       } else {
         throw new Error(response.message)
       }
@@ -105,15 +135,15 @@ export function useClientes() {
   useEffect(() => {
     // Solo hacer fetch cuando la autenticación esté verificada
     if (authChecked) {
-      fetchClientes()
+      fetchClientes(false)
     }
-  }, [authChecked, isAuthenticated])
+  }, [authChecked, isAuthenticated, fetchClientes])
 
   return {
     clientes,
     loading,
     error,
-    refetch: fetchClientes,
+    refetch: () => fetchClientes(true),
     buscarPorCodigo,
     buscarPorId,
     crearCliente,

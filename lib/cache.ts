@@ -31,7 +31,7 @@ export const CacheStrategy = {
   GENERAL: 900000,
 } as const
 
-function getCacheStrategy(endpoint: string, params?: Record<string, any>): number {
+export function getCacheStrategy(endpoint: string, params?: Record<string, any>): number {
   const hoy = new Date().toISOString().split("T")[0]
   
   // Facturas del día actual
@@ -55,6 +55,11 @@ function getCacheStrategy(endpoint: string, params?: Record<string, any>): numbe
   // Productos
   if (endpoint.includes("productos.php") && !params?.id) {
     return CacheStrategy.PRODUCTS
+  }
+  
+  // Clientes
+  if (endpoint.includes("clientes.php") && !params?.id) {
+    return CacheStrategy.GENERAL
   }
   
   return CacheStrategy.GENERAL
