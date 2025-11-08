@@ -32,7 +32,6 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        {/* Preconnect a recursos externos - solo en producción */}
         {process.env.NODE_ENV === "production" && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />
