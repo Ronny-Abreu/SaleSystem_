@@ -53,7 +53,7 @@ export function LoginModal({ isOpen }: LoginModalProps) {
       <div 
         className="absolute inset-0 backdrop-blur-md"
         style={{
-          background: 'rgba(0, 0, 0, 0.5)' /* Fondo oscuro y opaco */
+          background: 'rgba(0, 0, 0, 0.6)' /* Fondo oscuro con mejor contraste */
         }}
       />
 
@@ -131,7 +131,7 @@ export function LoginModal({ isOpen }: LoginModalProps) {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Ingresa tu contraseña"
-                  className="w-full pl-10 pr-12 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
+                  className="w-full pl-10 pr-16 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/50 text-white placeholder-gray-300 backdrop-blur-sm transition-all"
                   style={{
                     background: 'rgba(255, 255, 255, 0.1)',
                     border: '1px solid rgba(255, 255, 255, 0.2)'
@@ -142,7 +142,7 @@ export function LoginModal({ isOpen }: LoginModalProps) {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-white transition-colors"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50"
                   disabled={loading}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -180,11 +180,11 @@ export function LoginModal({ isOpen }: LoginModalProps) {
                 <div 
                   className="p-3 rounded-lg backdrop-blur-sm"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)'
                   }}
                 >
-                  <strong className="text-white">Demo</strong> / tareafacil25(Vendedor)
+                  <span className="text-white font-semibold">Demo</span> <span className="text-white">/ tareafacil25(Vendedor)</span>
                 </div>
               </div>
             </div>
