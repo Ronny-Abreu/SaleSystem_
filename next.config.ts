@@ -12,9 +12,13 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react', '@tsparticles/react'],
+    optimizeCss: true,
   },
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
+  // Optimizar carga de CSS
+  swcMinify: true,
+  compress: true,
   async rewrites() {
     // Reverse proxy
     if (process.env.NODE_ENV === "production") {

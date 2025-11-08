@@ -2,13 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Estilos críticos para prevenir FOUC */
+/* Estilos críticos inline para evitar bloqueo de renderizado */
 html {
   background-color: #f8fafc;
+  font-family: var(--font-inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif);
 }
 
 body {
   min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 :root {

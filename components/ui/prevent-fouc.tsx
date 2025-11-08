@@ -4,9 +4,9 @@ import { useEffect } from "react"
 
 export function PreventFOUC() {
   useEffect(() => {
-    document.documentElement.classList.add("loaded")
-    document.documentElement.style.visibility = "visible"
-    document.documentElement.style.opacity = "1"
+    if (typeof window !== 'undefined') {
+      document.body?.classList.add('loaded')
+    }
   }, [])
 
   return null
