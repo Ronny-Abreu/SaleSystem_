@@ -14,5 +14,3 @@ if ($isLocal) {
         $dotenv->load();
     }
 }
-?>
-
