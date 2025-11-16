@@ -1,4 +1,8 @@
 <?php
+if (!ob_get_level()) {
+    ob_start();
+}
+
 require_once __DIR__ . '/../config/env.php';
 require_once __DIR__ . '/jwt.php';
 require_once __DIR__ . '/../utils/response.php';
@@ -11,6 +15,10 @@ require_once __DIR__ . '/../utils/cors.php';
  */
 
 function authorizeRequest() {
+    if (ob_get_level()) {
+        ob_clean();
+    }
+    
     setCorsHeaders();
     
     $token = JwtAuth::getTokenFromHeader();

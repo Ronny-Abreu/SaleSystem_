@@ -1,4 +1,11 @@
 <?php
+if (!ob_get_level()) {
+    ob_start();
+}
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
 require_once '../config/env.php';
 require_once '../utils/cors.php';
 require_once '../utils/response.php';
@@ -6,6 +13,9 @@ require_once '../config/database.php';
 require_once '../models/Usuario.php';
 require_once '../auth/jwt.php';
 
+if (ob_get_level()) {
+    ob_clean();
+}
 setCorsHeaders();
 
 $database = new Database();

@@ -1,7 +1,17 @@
 <?php
+if (!ob_get_level()) {
+    ob_start();
+}
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+
 require_once '../config/env.php';
 require_once '../auth/middleware.php';
 
+if (ob_get_level()) {
+    ob_clean();
+}
 authorizeRequest();
 
 require_once '../utils/response.php';

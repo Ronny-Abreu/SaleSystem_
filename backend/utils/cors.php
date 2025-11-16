@@ -1,6 +1,9 @@
 <?php
 // Configuración CORS mejorada
 function setCorsHeaders() {
+    if (ob_get_level()) {
+        ob_clean();
+    }
     // Lista de orígenes permitidos específicos
     $allowed_origins = [
         'http://localhost:3000',

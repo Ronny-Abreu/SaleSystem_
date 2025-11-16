@@ -1,15 +1,19 @@
 <?php
+if (!ob_get_level()) {
+    ob_start();
+}
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once '../config/env.php';
 require_once '../auth/middleware.php';
 
+if (ob_get_level()) {
+    ob_clean();
+}
 authorizeRequest();
-
-ob_start();
-
-error_reporting(E_ALL);
-ini_set('display_errors', 0);
 
 require_once '../utils/response.php';
 require_once '../config/database.php';
