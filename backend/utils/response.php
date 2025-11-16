@@ -32,4 +32,3 @@ class ApiResponse {
         self::error($message, 401);
     }
 }
-?>

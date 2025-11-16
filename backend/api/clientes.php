@@ -180,4 +180,3 @@ try {
 } catch (Exception $e) {
     ApiResponse::badRequest("Error: " . $e->getMessage() . " en " . $e->getFile() . " línea " . $e->getLine());
 }
-?>

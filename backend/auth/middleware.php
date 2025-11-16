@@ -50,5 +50,3 @@ function authorizeRequest() {
     
     return true;
 }
-?>
-

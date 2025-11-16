@@ -27,4 +27,3 @@ if ($file && file_exists($file . '.php')) {
     http_response_code(404);
     echo json_encode(['error' => 'Endpoint no encontrado']);
 }
-?>

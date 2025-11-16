@@ -187,4 +187,3 @@ try {
 } catch (Exception $e) {
     ApiResponse::badRequest($e->getMessage());
 }
-?>
