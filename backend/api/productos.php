@@ -1,10 +1,12 @@
 <?php
-require_once '../utils/cors.php';
+require_once '../config/env.php';
+require_once '../auth/middleware.php';
+
+authorizeRequest();
+
 require_once '../utils/response.php';
 require_once '../config/database.php';
 require_once '../models/Producto.php';
-
-setCorsHeaders();
 
 $database = new Database();
 $db = $database->getConnection();

@@ -1,9 +1,11 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php'; // Autoload de Composer
-require_once './../utils/cors.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+require_once '../config/env.php';
+require_once '../auth/middleware.php';
 
-setCorsHeaders();
+authorizeRequest();
+
 ob_start();
 
 error_reporting(E_ALL);

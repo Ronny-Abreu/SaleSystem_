@@ -1,17 +1,12 @@
 <?php
+require_once '../config/env.php';
 require_once '../utils/cors.php';
 require_once '../utils/response.php';
 require_once '../config/database.php';
 require_once '../models/Usuario.php';
+require_once '../auth/jwt.php';
 
 setCorsHeaders();
-
-// Configurar sesiones para que funcionen en producción
-ini_set('session.cookie_samesite', 'None');
-ini_set('session.cookie_secure', '1');
-ini_set('session.cookie_httponly', '1');
-
-session_start();
 
 $database = new Database();
 $db = $database->getConnection();
@@ -22,7 +17,6 @@ $method = $_SERVER['REQUEST_METHOD'];
 try {
     switch($method) {
         case 'POST':
-            // Login
             $data = json_decode(file_get_contents("php://input"));
             
             if (!$data || !isset($data->username) || !isset($data->password)) {
@@ -30,17 +24,23 @@ try {
             }
             
             if ($usuario->authenticate($data->username, $data->password)) {
-                // Guardar en sesión
-                $_SESSION['user_id'] = $usuario->id;
-                $_SESSION['username'] = $usuario->username;
-                $_SESSION['nombre'] = $usuario->nombre;
-                $_SESSION['rol'] = $usuario->rol;
+                $payload = array(
+                    "id" => $usuario->id,
+                    "username" => $usuario->username,
+                    "nombre" => $usuario->nombre,
+                    "rol" => $usuario->rol
+                );
+                
+                $tokens = JwtAuth::generateTokens($payload);
                 
                 $user_data = array(
                     "id" => $usuario->id,
                     "username" => $usuario->username,
                     "nombre" => $usuario->nombre,
-                    "rol" => $usuario->rol
+                    "rol" => $usuario->rol,
+                    "access_token" => $tokens['access_token'],
+                    "refresh_token" => $tokens['refresh_token'],
+                    "expires_in" => $tokens['expires_in']
                 );
                 
                 ApiResponse::success($user_data, "Login exitoso");
@@ -50,40 +50,85 @@ try {
             break;
             
         case 'GET':
-            // Verificar sesión o auto-login con Demo
-            if (isset($_SESSION['user_id'])) {
-                $user_data = array(
-                    "id" => $_SESSION['user_id'],
-                    "username" => $_SESSION['username'],
-                    "nombre" => $_SESSION['nombre'],
-                    "rol" => $_SESSION['rol']
-                );
-                ApiResponse::success($user_data, "Sesión válida");
+            $token = JwtAuth::getTokenFromHeader();
+            
+            if ($token) {
+                $decoded = JwtAuth::verifyToken($token);
+                
+                if ($decoded && isset($decoded['data'])) {
+                    $user_data = (array) $decoded['data'];
+                    ApiResponse::success($user_data, "Token válido");
+                } else {
+                    ApiResponse::error("Token inválido", 401);
+                }
             } else {
-                // Auto-login con usuario Demo
                 if ($usuario->authenticate('Demo', 'tareafacil2025')) {
-                    $_SESSION['user_id'] = $usuario->id;
-                    $_SESSION['username'] = $usuario->username;
-                    $_SESSION['nombre'] = $usuario->nombre;
-                    $_SESSION['rol'] = $usuario->rol;
-                    
-                    $user_data = array(
+                    $payload = array(
                         "id" => $usuario->id,
                         "username" => $usuario->username,
                         "nombre" => $usuario->nombre,
                         "rol" => $usuario->rol
                     );
                     
+                    $tokens = JwtAuth::generateTokens($payload);
+                    
+                    $user_data = array(
+                        "id" => $usuario->id,
+                        "username" => $usuario->username,
+                        "nombre" => $usuario->nombre,
+                        "rol" => $usuario->rol,
+                        "access_token" => $tokens['access_token'],
+                        "refresh_token" => $tokens['refresh_token'],
+                        "expires_in" => $tokens['expires_in']
+                    );
+                    
                     ApiResponse::success($user_data, "Auto-login exitoso");
                 } else {
-                    ApiResponse::error("No hay sesión activa", 401);
+                    ApiResponse::error("No autorizado", 401);
                 }
             }
             break;
             
+        case 'PUT':
+            $data = json_decode(file_get_contents("php://input"));
+            
+            if (!$data || !isset($data->refresh_token)) {
+                ApiResponse::badRequest("Refresh token requerido");
+            }
+            
+            $decoded = JwtAuth::verifyToken($data->refresh_token);
+            
+            if (!$decoded || !isset($decoded['type']) || $decoded['type'] !== 'refresh') {
+                ApiResponse::error("Refresh token inválido", 401);
+            }
+            
+            if (isset($decoded['data']->id)) {
+                if ($usuario->findById($decoded['data']->id)) {
+                    $payload = array(
+                        "id" => $usuario->id,
+                        "username" => $usuario->username,
+                        "nombre" => $usuario->nombre,
+                        "rol" => $usuario->rol
+                    );
+                    
+                    $tokens = JwtAuth::generateTokens($payload);
+                    
+                    $response_data = array(
+                        "access_token" => $tokens['access_token'],
+                        "refresh_token" => $tokens['refresh_token'],
+                        "expires_in" => $tokens['expires_in']
+                    );
+                    
+                    ApiResponse::success($response_data, "Token refrescado exitosamente");
+                } else {
+                    ApiResponse::error("Usuario no encontrado", 401);
+                }
+            } else {
+                ApiResponse::error("Refresh token inválido", 401);
+            }
+            break;
+            
         case 'DELETE':
-            // Logout
-            session_destroy();
             ApiResponse::success(null, "Logout exitoso");
             break;
             
