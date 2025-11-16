@@ -23,6 +23,10 @@ function authorizeRequest() {
     
     $token = JwtAuth::getTokenFromHeader();
     
+    if (!$token && isset($_GET['action']) && $_GET['action'] === 'generate_pdf') {
+        $token = $_GET['token'] ?? null;
+    }
+    
     if (!$token) {
         http_response_code(401);
         echo json_encode([

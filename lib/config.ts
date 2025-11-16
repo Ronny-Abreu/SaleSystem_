@@ -28,3 +28,18 @@ export const buildBackendUrl = (endpoint: string) => {
   }
   return `${BACKEND_BASE_URL}/${endpoint.replace(/^\//, "")}`
 }
+
+// Función helper para construir URL de PDF con token de autenticación
+export const buildPdfUrl = (endpoint: string) => {
+  if (typeof window === "undefined") {
+    return buildBackendUrl(endpoint)
+  }
+  
+  const token = localStorage.getItem("sale_system_access_token")
+  if (!token) {
+    return buildBackendUrl(endpoint)
+  }
+  
+  const separator = endpoint.includes("?") ? "&" : "?"
+  return `${buildBackendUrl(endpoint)}${separator}token=${encodeURIComponent(token)}`
+}
