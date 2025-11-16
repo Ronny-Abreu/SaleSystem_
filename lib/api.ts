@@ -9,6 +9,18 @@ interface ApiResponse<T> {
   data: T
 }
 
+// Función para obtener el token del localStorage
+function getAccessToken(): string | null {
+  if (typeof window !== "undefined") {
+    try {
+      return localStorage.getItem("sale_system_access_token")
+    } catch (error) {
+      return null
+    }
+  }
+  return null
+}
+
 async function apiRequest<T>(
   endpoint: string, 
   options: RequestInit = {},
@@ -32,10 +44,19 @@ async function apiRequest<T>(
     return extracted
   })()
 
+  // Obtener token para agregarlo a los headers (excepto para auth.php)
+  const token = endpoint !== "auth.php" ? getAccessToken() : null
+
   if (method === "GET" && !hasBody) {
     return cachedFetch(
       async () => {
         const headers: HeadersInit = {}
+        
+        // Agregar token de autorización si existe
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`
+        }
+        
         const defaultOptions: RequestInit = {
           credentials: "include",
           headers,
@@ -91,6 +112,11 @@ async function apiRequest<T>(
   const headers: HeadersInit = {}
   if (hasBody || method !== "GET") {
     headers["Content-Type"] = "application/json"
+  }
+  
+  // Agregar token de autorización si existe
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
   }
 
   const defaultOptions: RequestInit = {
@@ -313,7 +339,23 @@ export const authApi = {
       body: JSON.stringify({ username, password }),
     }),
 
-  checkAuth: () => apiRequest("auth.php"),
+  checkAuth: () => {
+    const token = getAccessToken()
+    const headers: HeadersInit = {}
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`
+    }
+    return apiRequest("auth.php", {
+      method: "GET",
+      headers,
+    })
+  },
+
+  refreshToken: (refreshToken: string) =>
+    apiRequest("auth.php", {
+      method: "PUT",
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    }),
 
   logout: () =>
     apiRequest("auth.php", {

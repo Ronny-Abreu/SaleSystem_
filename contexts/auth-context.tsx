@@ -24,13 +24,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Constantes para las claves del localStorage
 const STORAGE_KEY = "sale_system_user_session"
+const TOKEN_KEY = "sale_system_access_token"
+const REFRESH_TOKEN_KEY = "sale_system_refresh_token"
 
-const saveUserToStorage = (user: User): void => {
+interface AuthTokens {
+  access_token: string
+  refresh_token: string
+  expires_in: number
+}
+
+const saveUserToStorage = (user: User, tokens?: AuthTokens): void => {
   if (typeof window !== "undefined") {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
+      if (tokens) {
+        localStorage.setItem(TOKEN_KEY, tokens.access_token)
+        localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token)
+      }
     } catch (error) {
       console.error("Error guardando sesión en localStorage:", error)
     }
@@ -51,10 +62,34 @@ const getUserFromStorage = (): User | null => {
   return null
 }
 
+const getAccessToken = (): string | null => {
+  if (typeof window !== "undefined") {
+    try {
+      return localStorage.getItem(TOKEN_KEY)
+    } catch (error) {
+      console.error("Error leyendo token del localStorage:", error)
+    }
+  }
+  return null
+}
+
+const getRefreshToken = (): string | null => {
+  if (typeof window !== "undefined") {
+    try {
+      return localStorage.getItem(REFRESH_TOKEN_KEY)
+    } catch (error) {
+      console.error("Error leyendo refresh token del localStorage:", error)
+    }
+  }
+  return null
+}
+
 const clearUserFromStorage = (): void => {
   if (typeof window !== "undefined") {
     try {
       localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(REFRESH_TOKEN_KEY)
     } catch (error) {
       console.error("Error limpiando sesión del localStorage:", error)
     }
@@ -68,7 +103,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     const storedUser = getUserFromStorage()
-    if (storedUser) {
+    const token = getAccessToken()
+    
+    if (storedUser && token) {
       setUser(storedUser)
       setLoading(false)
       setAuthChecked(true)
@@ -79,19 +116,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           credentials: "include",
           cache: "default",
           headers: {
+            "Authorization": `Bearer ${token}`,
           },
         })
 
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.data) {
-            setUser(data.data)
-            saveUserToStorage(data.data)
+            const user: User = {
+              id: data.data.id,
+              username: data.data.username,
+              nombre: data.data.nombre,
+              rol: data.data.rol
+            }
+            setUser(user)
+            saveUserToStorage(user)
           } else {
             setUser(null)
             clearUserFromStorage()
           }
         } else if (response.status === 401) {
+          const refreshToken = getRefreshToken()
+          if (refreshToken) {
+            try {
+              const refreshResponse = await fetch(buildApiUrl("auth.php"), {
+                method: "PUT",
+                credentials: "include",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ refresh_token: refreshToken }),
+              })
+
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json()
+                if (refreshData.success && refreshData.data) {
+                  saveUserToStorage(storedUser, refreshData.data)
+                  return
+                }
+              }
+            } catch (refreshError) {
+              console.error("Error al refrescar token:", refreshError)
+            }
+          }
+          
           setUser(null)
           clearUserFromStorage()
         } else {
@@ -106,7 +174,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return
     }
-
 
     setUser(null)
     setLoading(false)
@@ -129,8 +196,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.message || "Error de autenticación")
     }
 
-    setUser(data.data)
-    saveUserToStorage(data.data)
+    // Extraer tokens y datos del usuario
+    const { access_token, refresh_token, expires_in, ...userData } = data.data
+    
+    const user: User = {
+      id: userData.id,
+      username: userData.username,
+      nombre: userData.nombre,
+      rol: userData.rol
+    }
+
+    setUser(user)
+    saveUserToStorage(user, {
+      access_token,
+      refresh_token,
+      expires_in
+    })
   }
 
   const logout = async () => {
