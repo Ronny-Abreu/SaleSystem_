@@ -56,17 +56,40 @@ try {
                 }
                 error_log("DEBUG: Factura found for PDF (nombre): " . $factura_pdf->cliente['nombre']);
 
-                // Leer el archivo de la imagen y codificarlo en Base64
-                $imagePath = __DIR__ . '/../../public/SaleSystemLOGO.png';
+                $possiblePaths = [
+                    __DIR__ . '/../public/SaleSystemLOGO.png',
+                    '/app/public/SaleSystemLOGO.png',
+                    '/app/backend/public/SaleSystemLOGO.png',
+                    isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] . '/public/SaleSystemLOGO.png' : null,
+                ];
                 
-                $imageData = file_get_contents($imagePath);
-                if ($imageData === FALSE) {
-                    error_log("DEBUG LOGO: Error al leer el archivo de imagen: " . $imagePath);
-                    $imageSrc = ''; // No establecer una fuente de imagen si falla la lectura
+                $possiblePaths = array_filter($possiblePaths, function($path) {
+                    return $path !== null;
+                });
+                
+                $imageData = false;
+                $imagePath = null;
+                
+                foreach ($possiblePaths as $path) {
+                    if (file_exists($path)) {
+                        $imageData = file_get_contents($path);
+                        if ($imageData !== FALSE) {
+                            $imagePath = $path;
+                            error_log("DEBUG LOGO: Imagen encontrada en: " . $path);
+                            break;
+                        }
+                    }
+                }
+                
+                if ($imageData === FALSE || !$imagePath) {
+                    error_log("DEBUG LOGO: Error - No se pudo encontrar la imagen en ninguna ruta. Rutas intentadas:");
+                    foreach ($possiblePaths as $path) {
+                        error_log("  - " . $path . " (existe: " . (file_exists($path) ? 'SI' : 'NO') . ")");
+                    }
+                    $imageSrc = '';
                 } else {
                     $imageData = base64_encode($imageData);
                     $imageSrc = 'data:image/png;base64,' . $imageData;
-                    error_log("DEBUG LOGO: Longitud Base64: " . strlen($imageData));
                 }
 
                 // Generar HTML para el PDF
