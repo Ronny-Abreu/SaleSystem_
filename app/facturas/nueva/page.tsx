@@ -261,31 +261,7 @@ export default function NuevaFactura() {
       const pdfUrl = buildPdfUrl(`api/facturas.php?action=generate_pdf&id=${facturaCreada.id}`)
       window.open(pdfUrl, "_blank")
 
-      // Redirigir según el origen
-      if (fromDashboard) {
-        router.push(`/?factura_creada=true&numero=${facturaCreada.numero_factura}`)
-      } else if (vieneDesdeProductos) {
-        router.push(`/productos?factura_creada=true&numero=${facturaCreada.numero_factura}`)
-      } else if (clienteIdFromUrl) {
-
-        const returnUrl = fromClientesHoy 
-          ? `/clientes/${clienteIdFromUrl}?fromClientesHoy=true`
-          : `/clientes/${clienteIdFromUrl}`
-        router.push(returnUrl)
-
-      } else if (fromIngresosHoy) {
-        const hoy = (() => {
-          const now = new Date()
-          const year = now.getFullYear()
-          const month = String(now.getMonth() + 1).padStart(2, '0')
-          const day = String(now.getDate()).padStart(2, '0')
-          return `${year}-${month}-${day}`
-        })()
-        router.push(`/facturas?fecha_desde=${hoy}&fecha_hasta=${hoy}&success=true&numero=${facturaCreada.numero_factura}`)
-
-      } else {
-        router.push(`/facturas?success=true&numero=${facturaCreada.numero_factura}`)
-      }
+      router.push(`/facturas/${facturaCreada.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
     } finally {
