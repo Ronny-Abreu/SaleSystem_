@@ -43,3 +43,20 @@ export const buildPdfUrl = (endpoint: string) => {
   const separator = endpoint.includes("?") ? "&" : "?"
   return `${buildBackendUrl(endpoint)}${separator}token=${encodeURIComponent(token)}`
 }
+
+export const getLocalDateString = (): string => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export const getYesterdayDateString = (): string => {
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const year = yesterday.getFullYear()
+  const month = String(yesterday.getMonth() + 1).padStart(2, '0')
+  const day = String(yesterday.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}

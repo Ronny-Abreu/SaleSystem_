@@ -9,9 +9,11 @@ import { useDashboardData } from "@/hooks/useDashboardData"
 import { useMemo } from "react"
 import type { FacturaDetalle } from "@/lib/types"
 
+import { getLocalDateString } from "@/lib/config"
+
 export default function Home() {
   const router = useRouter()
-  const hoy = new Date().toISOString().split("T")[0]
+  const hoy = getLocalDateString()
 
   const {
     facturasHoy,

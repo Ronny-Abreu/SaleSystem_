@@ -8,6 +8,8 @@ class Database {
     public $conn;
 
     public function __construct() {
+        date_default_timezone_set('America/Santo_Domingo');
+        
         // Detección de entorno más específica para Railway
         if ($this->isLocalEnvironment()) {
             // Configuración para desarrollo local (XAMPP)

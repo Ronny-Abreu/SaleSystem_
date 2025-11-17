@@ -191,10 +191,22 @@ export function useDashboardData() {
       return
     }
 
-    const hoy = new Date().toISOString().split("T")[0]
-    const ayer = new Date()
-    ayer.setDate(ayer.getDate() - 1)
-    const fechaAyer = ayer.toISOString().split("T")[0]
+    const hoy = (() => {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
+    
+    const fechaAyer = (() => {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const year = yesterday.getFullYear()
+      const month = String(yesterday.getMonth() + 1).padStart(2, '0')
+      const day = String(yesterday.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
 
     const cachedData = loadFromCache(hoy)
     if (cachedData) {
@@ -218,10 +230,21 @@ export function useDashboardData() {
   useEffect(() => {
     if (!statsLoaded || quickActionsLoaded) return
 
-    const hoy = new Date().toISOString().split("T")[0]
-    const ayer = new Date()
-    ayer.setDate(ayer.getDate() - 1)
-    const fechaAyer = ayer.toISOString().split("T")[0]
+    const hoy = (() => {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
+    const fechaAyer = (() => {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const year = yesterday.getFullYear()
+      const month = String(yesterday.getMonth() + 1).padStart(2, '0')
+      const day = String(yesterday.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
 
     // Pequeño delay para asegurar que las estadísticas se muestren primero
     const timer = setTimeout(() => {

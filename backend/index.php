@@ -1,4 +1,6 @@
 <?php
+date_default_timezone_set('America/Santo_Domingo');
+
 require_once __DIR__ . '/utils/cors.php';
 setCorsHeaders();
 

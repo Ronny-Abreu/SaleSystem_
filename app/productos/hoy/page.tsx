@@ -13,7 +13,13 @@ import { useFacturas } from "@/hooks/useFacturas"
 import { GraficoCircularProductos } from "@/components/ui/grafico-circular-productos"
 
 export default function ProductosHoy() {
-  const hoy = new Date().toISOString().split("T")[0]
+  const hoy = (() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })()
   const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
   const { productos } = useProductos()
   const { facturas: facturasHoy, loading: loadingFacturas } = useFacturas({

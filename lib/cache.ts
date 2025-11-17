@@ -32,7 +32,13 @@ export const CacheStrategy = {
 } as const
 
 export function getCacheStrategy(endpoint: string, params?: Record<string, any>): number {
-  const hoy = new Date().toISOString().split("T")[0]
+  const hoy = (() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })()
   
   // Facturas del día actual
   if (endpoint.includes("facturas.php")) {
@@ -159,7 +165,13 @@ export function invalidateCache(pattern: string): void {
 }
 
 export function checkAndInvalidateDayCache(): void {
-  const hoy = new Date().toISOString().split("T")[0]
+  const hoy = (() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })()
   const lastCacheDate = localStorage.getItem("lastCacheDate")
   
   if (lastCacheDate !== hoy) {
