@@ -2,7 +2,7 @@
 
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { FileText, Plus, Eye, Filter, Search } from 'lucide-react'
+import { FileText, Plus, Eye, Filter, Search, ArrowLeft } from 'lucide-react'
 import Link from "next/link"
 import { useFacturas } from "@/hooks/useFacturas"
 import { useSearchParams } from "next/navigation"
@@ -102,16 +102,24 @@ export default function FacturasPage() {
 
             {/* Header con botones */}
             <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-xl md:text-2xl font-bold text-slate-900">
-                  {esConsultaDiaEspecifico ? "Ingresos del Día" : "Lista de Facturas"}
-                </h1>
-                <p className="text-sm md:text-base text-slate-600">
-                  {esConsultaDiaEspecifico
-                    ? `Facturas registradas el ${fechaFormateada}`
-                    : "Todas las facturas registradas en el sistema"}
-                </p>
-              </div>
+              {esConsultaDiaEspecifico ? (
+                <Link
+                  href="/"
+                  className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
+                >
+                  <ArrowLeft size={20} />
+                  <span>Dashboard</span>
+                </Link>
+              ) : (
+                <div>
+                  <h1 className="text-xl md:text-2xl font-bold text-slate-900">
+                    Lista de Facturas
+                  </h1>
+                  <p className="text-sm md:text-base text-slate-600">
+                    Todas las facturas registradas en el sistema
+                  </p>
+                </div>
+              )}
 
               {/* Botón desktop */}
               <div className="hidden md:block">
@@ -124,6 +132,18 @@ export default function FacturasPage() {
                 </Link>
               </div>
             </div>
+
+            {/* Título y fecha (solo para ingresos del día) */}
+            {esConsultaDiaEspecifico && (
+              <div className="mb-6">
+                <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-2">
+                  Ingresos del Día
+                </h1>
+                <p className="text-sm md:text-base text-slate-600">
+                  Facturas registradas el {fechaFormateada}
+                </p>
+              </div>
+            )}
 
             {/* Filtros */}
             <div className="card mb-6">
