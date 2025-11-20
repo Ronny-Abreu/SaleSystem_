@@ -66,7 +66,6 @@ try {
                     ApiResponse::notFound("Cliente no encontrado");
                 }
             } else {
-                // Obtener todos los clientes
                 $stmt = $cliente->read();
                 $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 ApiResponse::success($clientes, "Clientes obtenidos exitosamente");
@@ -74,7 +73,6 @@ try {
             break;
             
         case 'POST':
-            // Crear nuevo cliente
             $data = json_decode(file_get_contents("php://input"));
             
             if(!$data) {
@@ -87,13 +85,13 @@ try {
             $cliente->email = $data->email ?? '';
             $cliente->direccion = $data->direccion ?? '';
             
-            // Validar datos
             $cliente->validate();
             
-            // Verificar si el código del cliente ya existe para no repetirlo
-            $cliente_existente = new Cliente($db);
-            if($cliente_existente->findByCodigo($cliente->codigo)) {
-                ApiResponse::badRequest("Ya existe un cliente con ese código");
+            if(!empty($cliente->codigo)) {
+                $cliente_existente = new Cliente($db);
+                if($cliente_existente->findByCodigo($cliente->codigo)) {
+                    ApiResponse::badRequest("Ya existe un cliente con ese código");
+                }
             }
             
             if($cliente->create()) {
@@ -112,7 +110,6 @@ try {
             break;
             
         case 'PUT':
-            // Actualizar cliente
             if(!isset($_GET['id'])) {
                 ApiResponse::badRequest("ID del cliente requerido");
             }
@@ -125,18 +122,15 @@ try {
             
             $cliente->id = $_GET['id'];
             
-            // Verificar que el cliente existe
             if(!$cliente->findById($cliente->id)) {
                 ApiResponse::notFound("Cliente no encontrado");
             }
             
-            // Actualizar solo los campos especificos
             $cliente->nombre = $data->nombre ?? $cliente->nombre;
             $cliente->telefono = $data->telefono ?? $cliente->telefono;
             $cliente->email = $data->email ?? $cliente->email;
             $cliente->direccion = $data->direccion ?? $cliente->direccion;
             
-            // Validar datos
             $cliente->validate();
             
             if($cliente->update()) {
@@ -155,14 +149,12 @@ try {
             break;
             
         case 'DELETE':
-            // Eliminar cliente
             if(!isset($_GET['id'])) {
                 ApiResponse::badRequest("ID del cliente requerido");
             }
             
             $cliente->id = $_GET['id'];
             
-            // Verificar que el cliente exista
             if(!$cliente->findById($cliente->id)) {
                 ApiResponse::notFound("Cliente no encontrado");
             }

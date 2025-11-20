@@ -2,37 +2,27 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, Save, User } from "lucide-react"
 import { useClientes } from "@/hooks/useClientes"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCodigoCliente } from "@/hooks/useCodigoCliente"
 
 export default function NuevoCliente() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { crearCliente } = useClientes()
-  const { siguienteCodigo, loading: loadingCodigo } = useCodigoCliente()
   
   const returnTo = searchParams.get("returnTo")
   const fromDashboard = searchParams.get("fromDashboard") === "true"
 
   const [formData, setFormData] = useState({
-    codigo: "",
     nombre: "",
     telefono: "",
     email: "",
     direccion: "",
   })
-
-  // Actualizar el código cuando esté disponible (SE CREARÁ UN CODIGO SECUENCIAL PARA CADA USUARIO EN AUTOMATICO)
-  useEffect(() => {
-    if (siguienteCodigo && !formData.codigo) {
-      setFormData((prev) => ({ ...prev, codigo: siguienteCodigo }))
-    }
-  }, [siguienteCodigo])
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,10 +39,6 @@ export default function NuevoCliente() {
       setLoading(true)
       setError(null)
 
-      // Validaciones básicas
-      if (!formData.codigo.trim()) {
-        throw new Error("El código del cliente es requerido")
-      }
       if (!formData.nombre.trim()) {
         throw new Error("El nombre del cliente es requerido")
       }
@@ -63,6 +49,7 @@ export default function NuevoCliente() {
       if (!formData.email.trim()){
         throw new Error("El email del cliente es requerido")
       }
+      
       const clienteCreado = await crearCliente(formData)
       
       // redirigir a la factura con el ID del cliente creado
@@ -136,30 +123,17 @@ export default function NuevoCliente() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Código del Cliente *</label>
-                    <input
-                      type="text"
-                      name="codigo"
-                      value={formData.codigo}
-                      readOnly
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-slate-50 text-slate-800 font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Nombre Completo *</label>
-                    <input
-                      type="text"
-                      name="nombre"
-                      value={formData.nombre}
-                      onChange={handleChange}
-                      placeholder="Juan Pérez"
-                      required
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Nombre Completo *</label>
+                  <input
+                    type="text"
+                    name="nombre"
+                    value={formData.nombre}
+                    onChange={handleChange}
+                    placeholder="Juan Pérez"
+                    required
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

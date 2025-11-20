@@ -168,7 +168,7 @@ export const clientesApi = {
   },
 
   // Crear nuevo cliente
-  create: async (cliente: Omit<Cliente, "id" | "created_at" | "updated_at">): Promise<ApiResponse<Cliente>> => {
+  create: async (cliente: { nombre: string; telefono?: string; email?: string; direccion?: string; codigo?: string }): Promise<ApiResponse<Cliente>> => {
     invalidateCache("clientes.php")
     return apiRequest<Cliente>("clientes.php", {
       method: "POST",

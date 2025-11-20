@@ -85,7 +85,7 @@ export function useClientes() {
     }
   }
 
-  const crearCliente = async (cliente: Omit<Cliente, "id" | "created_at" | "updated_at">) => {
+  const crearCliente = async (cliente: { nombre: string; telefono?: string; email?: string; direccion?: string; codigo?: string }) => {
     try {
       if (!isAuthenticated) throw new Error("Usuario no autenticado")
       const response = await authenticatedRequest(() => clientesApi.create(cliente))

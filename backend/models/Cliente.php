@@ -19,8 +19,73 @@ class Cliente {
         $this->conn = $db;
     }
 
+    // Generar código de cliente de forma atómica
+    private function generarSiguienteCodigo() {
+        $maxIntentos = 10;
+        $intento = 0;
+        
+        while ($intento < $maxIntentos) {
+            try {
+                $this->conn->beginTransaction();
+                
+                $query = "SELECT codigo FROM " . $this->table_name . " 
+                         WHERE codigo LIKE 'CLI-%' 
+                         ORDER BY CAST(SUBSTRING(codigo, 5) AS UNSIGNED) DESC 
+                         LIMIT 1 FOR UPDATE";
+                $stmt = $this->conn->prepare($query);
+                $stmt->execute();
+                
+                $ultimoNumero = 0;
+                if ($stmt->rowCount() > 0) {
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $match = preg_match('/CLI-(\d+)/', $row['codigo'], $matches);
+                    if ($match && isset($matches[1])) {
+                        $ultimoNumero = (int)$matches[1];
+                    }
+                }
+                
+                $siguienteNumero = $ultimoNumero + 1;
+                $codigo = 'CLI-' . str_pad($siguienteNumero, 3, '0', STR_PAD_LEFT);
+                
+                $verificarQuery = "SELECT id FROM " . $this->table_name . " WHERE codigo = :codigo LIMIT 1";
+                $verificarStmt = $this->conn->prepare($verificarQuery);
+                $verificarStmt->bindParam(":codigo", $codigo);
+                $verificarStmt->execute();
+                
+                if ($verificarStmt->rowCount() > 0) {
+                    $this->conn->rollBack();
+                    $intento++;
+                    continue;
+                }
+                
+                $this->conn->commit();
+                
+                return $codigo;
+                
+            } catch (Exception $e) {
+                if ($this->conn->inTransaction()) {
+                    $this->conn->rollBack();
+                }
+                
+                if (strpos($e->getMessage(), 'Duplicate entry') !== false || 
+                    strpos($e->getMessage(), 'UNIQUE constraint') !== false) {
+                    $intento++;
+                    continue;
+                }
+                
+                throw $e;
+            }
+        }
+        
+        throw new Exception("No se pudo generar un código único después de varios intentos");
+    }
+
     // Crear cliente
     public function create() {
+        if (empty($this->codigo)) {
+            $this->codigo = $this->generarSiguienteCodigo();
+        }
+        
         $query = "INSERT INTO " . $this->table_name . " 
                   SET codigo=:codigo, nombre=:nombre, telefono=:telefono, 
                       email=:email, direccion=:direccion";
@@ -41,12 +106,26 @@ class Cliente {
         $stmt->bindParam(":email", $this->email);
         $stmt->bindParam(":direccion", $this->direccion);
 
-        if($stmt->execute()) {
-            $this->id = $this->conn->lastInsertId();
-            return true;
+        try {
+            if($stmt->execute()) {
+                $this->id = $this->conn->lastInsertId();
+                return true;
+            }
+            return false;
+        } catch (PDOException $e) {
+            if ((strpos($e->getMessage(), 'Duplicate entry') !== false || 
+                 strpos($e->getMessage(), 'UNIQUE constraint') !== false) &&
+                strpos($e->getMessage(), 'codigo') !== false) {
+                $this->codigo = $this->generarSiguienteCodigo();
+                $stmt->bindParam(":codigo", $this->codigo);
+                
+                if($stmt->execute()) {
+                    $this->id = $this->conn->lastInsertId();
+                    return true;
+                }
+            }
+            throw $e;
         }
-
-        return false;
     }
 
     // Leer todos los clientes
@@ -137,10 +216,8 @@ class Cliente {
         $factura = new Factura($this->conn);
 
         try {
-            // Iniciar transacción
             $this->conn->beginTransaction();
 
-            // Verificar si el cliente tiene facturas pendientes
             if ($factura->hasPendingInvoices($this->id)) {
                 throw new Exception("No se puede eliminar el cliente porque tiene facturas pendientes.");
             }
@@ -148,7 +225,6 @@ class Cliente {
             // Eliminar todas las facturas del cliente (pagadas o anuladas)
             $factura->deleteByClientId($this->id);
 
-            // Eliminar el cliente
             $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
             $stmt = $this->conn->prepare($query);
             
@@ -168,12 +244,12 @@ class Cliente {
         }
     }
 
-    // Validar datos del cliente
     public function validate() {
         try {
-            Validator::required($this->codigo, 'código');
+            if (!empty($this->codigo)) {
+                Validator::minLength($this->codigo, 3, 'código');
+            }
             Validator::required($this->nombre, 'nombre');
-            Validator::minLength($this->codigo, 3, 'código');
             Validator::minLength($this->nombre, 2, 'nombre');
             
             if (!empty($this->email)) {
