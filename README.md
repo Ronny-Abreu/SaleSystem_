@@ -139,9 +139,8 @@ backend/
 
 > - Creación de facturas
 <img width="1909" height="928" alt="image" src="https://github.com/user-attachments/assets/8e42ec39-5873-4ddb-8f0e-746ca184f164" />
-<img width="1904" height="882" alt="image" src="https://github.com/user-attachments/assets/1554c168-cb8c-457e-bc3a-79bb26bcdcb8" />
+<img width="1417" height="804" alt="image" src="https://github.com/user-attachments/assets/89ec03d8-6674-4685-b5a9-08a6a0e0fe15" />
 <img width="1886" height="878" alt="image" src="https://github.com/user-attachments/assets/9b5c25bc-71bc-4250-b8de-5861981154cb" />
-<img width="1584" height="880" alt="image" src="https://github.com/user-attachments/assets/271f920c-bc86-4b34-bc6e-98730b1ec815" />
 <img width="1874" height="883" alt="image" src="https://github.com/user-attachments/assets/1f5bc6b3-c005-4fc1-91bc-f7a1e9024062" />
 <img width="1919" height="880" alt="image" src="https://github.com/user-attachments/assets/e47184c3-664c-4c1b-a482-f60151b1947a" />
 
@@ -157,8 +156,9 @@ backend/
 <img width="1898" height="881" alt="image" src="https://github.com/user-attachments/assets/e0626701-9f17-41c9-8d62-9e1b774821b1" />
 
 
-> - Generación de PDFs (imprime la pantalla completa, simulación) - Está en desarrollo el generador de pdf automático 
-<img width="1884" height="958" alt="image" src="https://github.com/user-attachments/assets/8525da75-0652-4a4c-9f3e-6e2781ad40cd" />
+> - Generación de PDFs automáticos
+<img width="1421" height="804" alt="image" src="https://github.com/user-attachments/assets/3550f9e2-ad7e-4a33-9829-5ff49a6699c4" />
+<img width="1430" height="872" alt="image" src="https://github.com/user-attachments/assets/fde66e9a-6186-4cfd-b756-386e0c27dde2" />
 
 ## 💻 Instalación y Uso
 
