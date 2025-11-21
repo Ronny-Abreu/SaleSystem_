@@ -7,7 +7,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, FileText, Check, X, Clock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { facturasApi } from "@/lib/api"
-import { buildBackendUrl, buildPdfUrl } from "@/lib/config"
+import { buildBackendUrl, buildPdfUrl, openPdfInNewTab } from "@/lib/config"
 import type { Factura } from "@/lib/types"
 
 type EstadoFactura = "pendiente" | "pagada" | "anulada"
@@ -54,7 +54,7 @@ export default function FacturaDetalle() {
         
         if (response.data?.cambio_pendiente_a_pagada) {
           const pdfUrl = buildPdfUrl(`api/facturas.php?action=generate_pdf&id=${factura.id}`)
-          window.open(pdfUrl, "_blank")
+          openPdfInNewTab(pdfUrl)
         }
       } else {
         throw new Error(response.message)
@@ -172,7 +172,7 @@ export default function FacturaDetalle() {
                 <button 
                   onClick={() => {
                     const pdfUrl = buildPdfUrl(`api/facturas.php?action=generate_pdf&id=${factura.id}`)
-                    window.open(pdfUrl, "_blank")
+                    openPdfInNewTab(pdfUrl)
                   }} 
                   className="btn-secondary flex items-center space-x-2 text-sm"
                 >
