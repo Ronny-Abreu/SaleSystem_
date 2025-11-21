@@ -15,6 +15,7 @@ export default function DetalleCliente() {
   const searchParams = useSearchParams()
   const success = searchParams.get("success")
   const fromClientesHoy = searchParams.get("fromClientesHoy") === "true"
+  const fromDashboard = searchParams.get("fromDashboard") === "true"
   const clienteId = Number(params.id)
   const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
 
@@ -135,8 +136,8 @@ export default function DetalleCliente() {
           <main className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <p className="text-red-600 mb-4">{error}</p>
-              <Link href={fromClientesHoy ? "/clientes/hoy" : "/clientes"} className="btn-primary">
-                Volver a Clientes
+              <Link href={fromDashboard ? "/" : fromClientesHoy ? "/clientes/hoy" : "/clientes"} className="btn-primary">
+                {fromDashboard ? "Volver al Dashboard" : "Volver a Clientes"}
               </Link>
             </div>
           </main>
@@ -164,18 +165,18 @@ export default function DetalleCliente() {
             {/* Header con botones responsive */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-2 md:space-x-3">
-                <Link
-                  href={fromClientesHoy ? "/clientes/hoy" : "/clientes"}
-                  className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
-                >
-                  <ArrowLeft size={20} />
-                  <span className="hidden md:inline">
-                    {fromClientesHoy ? "Volver a clientes del día" : "Volver a clientes"}
-                  </span>
-                </Link>
+              <Link
+                href={fromDashboard ? "/" : fromClientesHoy ? "/clientes/hoy" : "/clientes"}
+                className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                <ArrowLeft size={20} />
+                <span className="hidden md:inline">
+                  {fromDashboard ? "Volver al dashboard" : fromClientesHoy ? "Volver a clientes del día" : "Volver a clientes"}
+                </span>
+              </Link>
 
                 <Link
-                  href={`/clientes/${clienteId}/editar${fromClientesHoy ? "?fromClientesHoy=true" : ""}`}
+                  href={`/clientes/${clienteId}/editar${fromDashboard ? "?fromDashboard=true" : fromClientesHoy ? "?fromClientesHoy=true" : ""}`}
                   className="flex items-center space-x-2 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                 >
                   <Edit size={16} />
@@ -184,7 +185,7 @@ export default function DetalleCliente() {
               </div>
 
               <Link
-                href={`/facturas/nueva?cliente=${clienteId}${fromClientesHoy ? "&fromClientesHoy=true" : ""}`}
+                href={`/facturas/nueva?cliente=${clienteId}${fromDashboard ? "&fromDashboard=true" : fromClientesHoy ? "&fromClientesHoy=true" : ""}`}
                 className="btn-primary flex items-center space-x-2 px-3 py-2 text-sm"
               >
                 <FileText size={16} />
@@ -380,7 +381,7 @@ export default function DetalleCliente() {
                               </td>
                               <td className="py-3 px-2 md:px-4 text-center">
                                 <Link
-                                  href={`/facturas/${factura.id}?fromClient=${clienteId}${fromClientesHoy ? "&fromClientesHoy=true" : ""}`} // Pasar fromClient y fromClientesHoy si aplica
+                                  href={`/facturas/${factura.id}?fromClient=${clienteId}${fromDashboard ? "&fromDashboard=true" : fromClientesHoy ? "&fromClientesHoy=true" : ""}`}
                                   className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"
                                 >
                                   <Eye size={16} />
@@ -402,7 +403,7 @@ export default function DetalleCliente() {
                       </p>
                       {!filtroHoy && (
                         <Link
-                          href={`/facturas/nueva?cliente=${clienteId}${fromClientesHoy ? "&fromClientesHoy=true" : ""}`}
+                          href={`/facturas/nueva?cliente=${clienteId}${fromDashboard ? "&fromDashboard=true" : fromClientesHoy ? "&fromClientesHoy=true" : ""}`}
                           className="btn-primary inline-flex items-center space-x-2"
                         >
                           <FileText size={16} />

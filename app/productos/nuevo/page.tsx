@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, Save, Package } from "lucide-react"
 import { useProductos } from "@/hooks/useProductos"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Toast } from "@/components/ui/Toast"
 
 const CATEGORIAS = [
   { id: 1, nombre: "Bebidas", color: "#3B82F6" },
@@ -35,6 +36,7 @@ export default function NuevoProducto() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showToast, setShowToast] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
@@ -75,11 +77,15 @@ export default function NuevoProducto() {
       }
 
       await crearProducto(productoData)
-      if (fromDashboard) {
-        router.push("/?producto_creado=true")
-      } else {
-        router.push("/productos?success=true")
-      }
+      
+      setShowToast(true)
+      
+      setTimeout(() => {
+        setShowToast(false)
+        setTimeout(() => {
+          router.push("/productos?success=true")
+        }, 300)
+      }, 1500)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
     } finally {
@@ -244,6 +250,14 @@ export default function NuevoProducto() {
           </div>
         </main>
       </div>
+
+      <Toast
+        message="¡Producto creado exitosamente!"
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        type="success"
+        duration={1800}
+      />
     </div>
   )
 }

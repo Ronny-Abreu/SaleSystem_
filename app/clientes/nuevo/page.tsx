@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, Save, User } from "lucide-react"
 import { useClientes } from "@/hooks/useClientes"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Toast } from "@/components/ui/Toast"
 
 export default function NuevoCliente() {
   const router = useRouter()
@@ -26,6 +27,7 @@ export default function NuevoCliente() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showToast, setShowToast] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -52,17 +54,26 @@ export default function NuevoCliente() {
       
       const clienteCreado = await crearCliente(formData)
       
-      // redirigir a la factura con el ID del cliente creado
-      if (returnTo && clienteCreado && clienteCreado.id) {
-        const decodedReturnTo = decodeURIComponent(returnTo)
-        const separator = decodedReturnTo.includes('?') ? '&' : '?'
-        router.push(`${decodedReturnTo}${separator}clienteId=${clienteCreado.id}`)
-      } else if (fromDashboard) {
-        router.push("/?cliente_creado=true")
-      } else {
-        // redirigir a la página de clientes
-        router.push("/clientes?success=true")
-      }
+      setShowToast(true)
+      
+      setTimeout(() => {
+        setShowToast(false)
+        setTimeout(() => {
+          if (returnTo && clienteCreado && clienteCreado.id) {
+            const decodedReturnTo = decodeURIComponent(returnTo)
+            const separator = decodedReturnTo.includes('?') ? '&' : '?'
+            router.push(`${decodedReturnTo}${separator}clienteId=${clienteCreado.id}`)
+          } else if (clienteCreado && clienteCreado.id) {
+            const redirectUrl = fromDashboard 
+              ? `/clientes/${clienteCreado.id}?fromDashboard=true`
+              : `/clientes/${clienteCreado.id}`
+            router.push(redirectUrl)
+          } else {
+            // Fallback: redirigir a la página de clientes si no hay ID
+            router.push("/clientes?success=true")
+          }
+        }, 300)
+      }, 1500)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
     } finally {
@@ -208,6 +219,14 @@ export default function NuevoCliente() {
           </div>
         </main>
       </div>
+
+      <Toast
+        message="¡Cliente creado exitosamente!"
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        type="success"
+        duration={1800}
+      />
     </div>
   )
 }
