@@ -2,11 +2,12 @@
 
 import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
-import { FileText, Plus, Eye, Filter, Search, ArrowLeft } from 'lucide-react'
+import { FileText, Plus, Eye, Filter, Search, ArrowLeft, Calculator } from 'lucide-react'
 import Link from "next/link"
 import { useFacturas } from "@/hooks/useFacturas"
 import { useSearchParams } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
+import { SimularArqueoModal } from "@/components/modals/simular-arqueo-modal"
 
 export default function FacturasPage() {
   const searchParams = useSearchParams()
@@ -20,6 +21,7 @@ export default function FacturasPage() {
   const [filtroFecha, setFiltroFecha] = useState(fechaDesdeUrl || "")
   const [filtroFechaHasta, setFiltroFechaHasta] = useState(fechaHastaUrl || "")
   const [busqueda, setBusqueda] = useState("")
+  const [showSimularArqueo, setShowSimularArqueo] = useState(false)
 
   const { facturas, loading, error } = useFacturas({
     estado: filtroEstado || undefined,
@@ -75,6 +77,14 @@ export default function FacturasPage() {
       return null
     }
   }, [esConsultaDiaEspecifico, filtroFecha])
+
+  // Calcular total de ventas del día (solo facturas pagadas)
+  const ventasDelDia = useMemo(() => {
+    if (!esConsultaDiaEspecifico) return 0
+    return facturasFiltradas
+      .filter((factura) => factura.estado === "pagada")
+      .reduce((total, factura) => total + factura.total, 0)
+  }, [esConsultaDiaEspecifico, facturasFiltradas])
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -212,6 +222,17 @@ export default function FacturasPage() {
                     className="flex-1 sm:flex-none px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     placeholder="Fecha hasta"
                   />
+
+                  {/* Botón Simular Arqueo */}
+                  {esConsultaDiaEspecifico && (
+                    <button
+                      onClick={() => setShowSimularArqueo(true)}
+                      className="flex-1 sm:flex-none px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center space-x-2 text-sm whitespace-nowrap"
+                    >
+                      <Calculator size={16} />
+                      <span>Simular Arqueo</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -343,6 +364,16 @@ export default function FacturasPage() {
           </div>
         </main>
       </div>
+
+      {/* Modal Simular Arqueo */}
+      {esConsultaDiaEspecifico && filtroFecha && (
+        <SimularArqueoModal
+          isOpen={showSimularArqueo}
+          onClose={() => setShowSimularArqueo(false)}
+          ventasDelDia={ventasDelDia}
+          fecha={filtroFecha}
+        />
+      )}
     </div>
   )
 }
