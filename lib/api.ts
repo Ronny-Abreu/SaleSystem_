@@ -98,7 +98,8 @@ async function apiRequest<T>(
           throw new Error(errorMessage)
         }
 
-        return await response.json()
+        const data = await response.json()
+        return data
       },
       endpoint,
       method,
