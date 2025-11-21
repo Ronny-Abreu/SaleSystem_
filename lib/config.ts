@@ -44,6 +44,30 @@ export const buildPdfUrl = (endpoint: string) => {
   return `${buildBackendUrl(endpoint)}${separator}token=${encodeURIComponent(token)}`
 }
 
+export const openPdfInNewTab = (pdfUrl: string) => {
+  if (typeof window === "undefined") return
+  
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+  
+  if (isMobile) {
+    // Esto funciona mejor en Safari iOS
+    const link = document.createElement("a")
+    link.href = pdfUrl
+    link.target = "_blank"
+    link.rel = "noopener noreferrer"
+    link.style.display = "none"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } else {
+    const printWindow = window.open(pdfUrl, "_blank", "noopener,noreferrer")
+    
+    if (!printWindow) {
+      alert("Por favor, permite que se abran ventanas emergentes para generar el PDF")
+    }
+  }
+}
+
 export const getLocalDateString = (): string => {
   const now = new Date()
   const year = now.getFullYear()
