@@ -79,6 +79,14 @@ async function apiRequest<T>(
         const response = await fetch(url, fetchOptions)
 
         if (!response.ok) {
+          const isVerificationRequest = endpoint.includes('?email=') || 
+                                        endpoint.includes('?telefono=') || 
+                                        endpoint.includes('?nombre=')
+          
+          if (response.status === 404 && isVerificationRequest) {
+            return { success: false, message: "Cliente no encontrado", data: null }
+          }
+          
           let errorMessage = `HTTP error! status: ${response.status}`
           try {
             const errorData = await response.json()
@@ -114,7 +122,6 @@ async function apiRequest<T>(
     headers["Content-Type"] = "application/json"
   }
   
-  // Agregar token de autorización si existe
   if (token) {
     headers["Authorization"] = `Bearer ${token}`
   }
@@ -136,6 +143,14 @@ async function apiRequest<T>(
   const response = await fetch(url, fetchOptions)
 
   if (!response.ok) {
+    const isVerificationRequest = endpoint.includes('?email=') || 
+                                  endpoint.includes('?telefono=') || 
+                                  endpoint.includes('?nombre=')
+    
+    if (response.status === 404 && isVerificationRequest) {
+      return { success: false, message: "Cliente no encontrado", data: null as T }
+    }
+    
     let errorMessage = `HTTP error! status: ${response.status}`
     try {
       const errorData = await response.json()
@@ -152,22 +167,53 @@ async function apiRequest<T>(
 
 // ===== CLIENTES =====
 export const clientesApi = {
-  // Obtener todos los clientes
   getAll: async (): Promise<ApiResponse<Cliente[]>> => {
     return apiRequest<Cliente[]>("clientes.php")
   },
 
-  // Buscar cliente por código
   getByCodigo: async (codigo: string): Promise<ApiResponse<Cliente>> => {
     return apiRequest<Cliente>(`clientes.php?codigo=${encodeURIComponent(codigo)}`)
   },
 
-  // Buscar cliente por ID
   getById: async (id: number): Promise<ApiResponse<Cliente>> => {
     return apiRequest<Cliente>(`clientes.php?id=${id}`)
   },
 
-  // Crear nuevo cliente
+  getByEmail: async (email: string): Promise<ApiResponse<Cliente>> => {
+    return apiRequest<Cliente>(`clientes.php?email=${encodeURIComponent(email)}`)
+  },
+
+  getByTelefono: async (telefono: string): Promise<ApiResponse<Cliente>> => {
+    return apiRequest<Cliente>(`clientes.php?telefono=${encodeURIComponent(telefono)}`)
+  },
+
+  getByNombre: async (nombre: string): Promise<ApiResponse<Cliente>> => {
+    return apiRequest<Cliente>(`clientes.php?nombre=${encodeURIComponent(nombre)}`)
+  },
+
+  verificarEmailExistente: async (email: string): Promise<ApiResponse<Cliente | null>> => {
+    const response = await apiRequest<Cliente>(`clientes.php?email=${encodeURIComponent(email)}`)
+    if (!response.success) {
+      return { success: true, message: "Cliente no encontrado", data: null as any }
+    }
+    return response
+  },
+
+  verificarTelefonoExistente: async (telefono: string): Promise<ApiResponse<Cliente | null>> => {
+    const response = await apiRequest<Cliente>(`clientes.php?telefono=${encodeURIComponent(telefono)}`)
+    if (!response.success) {
+      return { success: true, message: "Cliente no encontrado", data: null as any }
+    }
+    return response
+  },
+
+  verificarNombreExistente: async (nombre: string): Promise<ApiResponse<Cliente | null>> => {
+    const response = await apiRequest<Cliente>(`clientes.php?nombre=${encodeURIComponent(nombre)}`)
+    if (!response.success) {
+      return { success: true, message: "Cliente no encontrado", data: null as any }
+    }
+    return response
+  },
   create: async (cliente: { nombre: string; telefono?: string; email?: string; direccion?: string; codigo?: string }): Promise<ApiResponse<Cliente>> => {
     invalidateCache("clientes.php")
     return apiRequest<Cliente>("clientes.php", {
@@ -176,7 +222,6 @@ export const clientesApi = {
     })
   },
 
-  // Actualizar cliente
   update: async (id: number, cliente: Partial<Cliente>): Promise<ApiResponse<Cliente>> => {
     invalidateCache("clientes.php")
     return apiRequest<Cliente>(`clientes.php?id=${id}`, {
@@ -185,7 +230,6 @@ export const clientesApi = {
     })
   },
 
-  // Eliminar cliente
   delete: async (id: number): Promise<ApiResponse<null>> => {
     invalidateCache("clientes.php")
     invalidateCache("facturas.php") // Las facturas también pueden verse afectadas
@@ -197,7 +241,6 @@ export const clientesApi = {
 
 // ===== PRODUCTOS =====
 export const productosApi = {
-  // Obtener todos los productos
   getAll: async (activos?: boolean): Promise<ApiResponse<Producto[]>> => {
     let endpoint = "productos.php"
     if (activos !== undefined) {
@@ -206,12 +249,10 @@ export const productosApi = {
     return apiRequest<Producto[]>(endpoint)
   },
 
-  // Buscar producto por ID
   getById: async (id: number): Promise<ApiResponse<Producto>> => {
     return apiRequest<Producto>(`productos.php?id=${id}`)
   },
 
-  // Crear nuevo producto
   create: async (producto: Omit<Producto, "id" | "created_at" | "updated_at">): Promise<ApiResponse<Producto>> => {
     invalidateCache("productos.php")
     return apiRequest<Producto>("productos.php", {
@@ -220,7 +261,6 @@ export const productosApi = {
     })
   },
 
-  // Actualizar producto
   update: async (id: number, producto: Partial<Producto>): Promise<ApiResponse<Producto>> => {
     invalidateCache("productos.php")
     return apiRequest<Producto>(`productos.php?id=${id}`, {
@@ -229,7 +269,6 @@ export const productosApi = {
     })
   },
 
-  // Eliminar producto (soft delete)
   delete: async (id: number): Promise<ApiResponse<null>> => {
     invalidateCache("productos.php")
     return apiRequest<null>(`productos.php?id=${id}`, {
@@ -240,7 +279,6 @@ export const productosApi = {
 
 // ===== FACTURAS =====
 export const facturasApi = {
-  // Obtener todas las facturas
   getAll: async (filtros?: {
     fecha_desde?: string
     fecha_hasta?: string
@@ -269,17 +307,14 @@ export const facturasApi = {
     return apiRequest<Factura[]>(endpoint, {}, undefined, params)
   },
 
-  // Buscar factura por ID
   getById: async (id: number): Promise<ApiResponse<Factura>> => {
     return apiRequest<Factura>(`facturas.php?id=${id}`)
   },
 
-  // Buscar factura por número
   getByNumero: async (numero: string): Promise<ApiResponse<Factura>> => {
     return apiRequest<Factura>(`facturas.php?numero=${encodeURIComponent(numero)}`)
   },
 
-  // Crear nueva factura
   create: async (factura: {
     cliente_id: number
     fecha: string
@@ -302,7 +337,6 @@ export const facturasApi = {
     })
   },
 
-  // Actualizar estado de factura
   updateEstado: async (id: number, estado: string): Promise<ApiResponse<{ cambio_pendiente_a_pagada: boolean; factura_id: number } | null>> => {
     invalidateCache("facturas.php")
     return apiRequest<{ cambio_pendiente_a_pagada: boolean; factura_id: number } | null>(`facturas.php?id=${id}`, {
@@ -311,7 +345,6 @@ export const facturasApi = {
     })
   },
 
-  // Obtener estadísticas del día
   getEstadisticas: async (
     fecha?: string,
   ): Promise<
@@ -331,7 +364,6 @@ export const facturasApi = {
   },
 }
 
-// API de Autenticación
 export const authApi = {
   login: (username: string, password: string) =>
     apiRequest("auth.php", {

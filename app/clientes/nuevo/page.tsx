@@ -13,7 +13,7 @@ import { Toast } from "@/components/ui/Toast"
 export default function NuevoCliente() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { crearCliente } = useClientes()
+  const { crearCliente, verificarEmailExistente, verificarTelefonoExistente, verificarNombreExistente } = useClientes()
   
   const returnTo = searchParams.get("returnTo")
   const fromDashboard = searchParams.get("fromDashboard") === "true"
@@ -29,27 +29,105 @@ export default function NuevoCliente() {
   const [error, setError] = useState<string | null>(null)
   const [showToast, setShowToast] = useState(false)
 
+  const formatTelefono = (value: string): string => {
+    const numbers = value.replace(/\D/g, '')
+    
+    const limitedNumbers = numbers.slice(0, 10)
+    
+    // Formato: XXX-XXX-XXXX
+    if (limitedNumbers.length <= 3) {
+      return limitedNumbers
+    } else if (limitedNumbers.length <= 6) {
+      return `${limitedNumbers.slice(0, 3)}-${limitedNumbers.slice(3)}`
+    } else {
+      return `${limitedNumbers.slice(0, 3)}-${limitedNumbers.slice(3, 6)}-${limitedNumbers.slice(6)}`
+    }
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    
+    // Limpiar error cuando el usuario empieza a escribir
+    if (error) {
+      setError(null)
+    }
+    
+    // Formatear teléfono automáticamente
+    if (name === 'telefono') {
+      const formattedValue = formatTelefono(value)
+      setFormData((prev) => ({ ...prev, [name]: formattedValue }))
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }))
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && e.currentTarget.tagName !== 'TEXTAREA') {
+      e.preventDefault()
+      const form = e.currentTarget.form
+      if (form) {
+        const inputs = Array.from(form.querySelectorAll('input, textarea, button[type="submit"]'))
+        const currentIndex = inputs.indexOf(e.currentTarget)
+        const nextInput = inputs[currentIndex + 1] as HTMLElement
+        if (nextInput) {
+          nextInput.focus()
+        }
+      }
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+
+    if (!formData.nombre.trim()) {
+      setError("El nombre del cliente es requerido")
+      setLoading(false)
+      return
+    }
+
+    if (!formData.telefono.trim()) {
+      setError("El teléfono del cliente es requerido")
+      setLoading(false)
+      return
+    }
+
+    if (!formData.email.trim()) {
+      setError("El email del cliente es requerido")
+      setLoading(false)
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email.trim())) {
+      setError("El email debe tener un formato válido")
+      setLoading(false)
+      return
+    }
 
     try {
       setLoading(true)
       setError(null)
-
-      if (!formData.nombre.trim()) {
-        throw new Error("El nombre del cliente es requerido")
+      
+      const nombreExiste = await verificarNombreExistente(formData.nombre.trim())
+      if (nombreExiste) {
+        setError("Ya existe un cliente con ese nombre")
+        setLoading(false)
+        return
       }
 
-      if (!formData.telefono.trim()){
-        throw new Error("El teléfono del cliente es requerido")
+      const telefonoExiste = await verificarTelefonoExistente(formData.telefono.trim())
+      if (telefonoExiste) {
+        setError("Ya existe un cliente con ese teléfono")
+        setLoading(false)
+        return
       }
-      if (!formData.email.trim()){
-        throw new Error("El email del cliente es requerido")
+
+      const emailExiste = await verificarEmailExistente(formData.email.trim())
+      if (emailExiste) {
+        setError("Ya existe un cliente con ese email")
+        setLoading(false)
+        return
       }
       
       const clienteCreado = await crearCliente(formData)
@@ -133,7 +211,7 @@ export default function NuevoCliente() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} noValidate className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Nombre Completo *</label>
                   <input
@@ -141,6 +219,7 @@ export default function NuevoCliente() {
                     name="nombre"
                     value={formData.nombre}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     placeholder="Juan Pérez"
                     required
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
@@ -149,12 +228,13 @@ export default function NuevoCliente() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Teléfono</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Teléfono *</label>
                     <input
                       type="tel"
                       name="telefono"
                       value={formData.telefono}
                       onChange={handleChange}
+                      onKeyDown={handleKeyDown}
                       placeholder="809-555-0000"
                       required
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
@@ -162,12 +242,13 @@ export default function NuevoCliente() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Email *</label>
                     <input
                       type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
+                      onKeyDown={handleKeyDown}
                       placeholder="cliente@email.com"
                       required
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
@@ -189,6 +270,7 @@ export default function NuevoCliente() {
 
                 <div className="flex flex-nowrap justify-end items-center gap-3 pt-6">
                   <button
+                    type="button"
                     onClick={() => {
                       if (returnTo) {
                         router.push(returnTo)

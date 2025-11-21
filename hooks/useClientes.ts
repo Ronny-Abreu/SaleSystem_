@@ -85,6 +85,36 @@ export function useClientes() {
     }
   }
 
+  const verificarEmailExistente = async (email: string): Promise<boolean> => {
+    try {
+      if (!isAuthenticated || !email.trim()) return false
+      const response = await authenticatedRequest(() => clientesApi.verificarEmailExistente(email))
+      return response.success && response.data !== null
+    } catch (err) {
+      return false
+    }
+  }
+
+  const verificarTelefonoExistente = async (telefono: string): Promise<boolean> => {
+    try {
+      if (!isAuthenticated || !telefono.trim()) return false
+      const response = await authenticatedRequest(() => clientesApi.verificarTelefonoExistente(telefono))
+      return response.success && response.data !== null
+    } catch (err) {
+      return false
+    }
+  }
+
+  const verificarNombreExistente = async (nombre: string): Promise<boolean> => {
+    try {
+      if (!isAuthenticated || !nombre.trim()) return false
+      const response = await authenticatedRequest(() => clientesApi.verificarNombreExistente(nombre))
+      return response.success && response.data !== null
+    } catch (err) {
+      return false
+    }
+  }
+
   const crearCliente = async (cliente: { nombre: string; telefono?: string; email?: string; direccion?: string; codigo?: string }) => {
     try {
       if (!isAuthenticated) throw new Error("Usuario no autenticado")
@@ -149,5 +179,8 @@ export function useClientes() {
     crearCliente,
     actualizarCliente,
     eliminarCliente,
+    verificarEmailExistente,
+    verificarTelefonoExistente,
+    verificarNombreExistente,
   }
 }

@@ -65,6 +65,57 @@ try {
                 } else {
                     ApiResponse::notFound("Cliente no encontrado");
                 }
+            } elseif(isset($_GET['email'])) {
+                $email = $_GET['email'];
+                if($cliente->findByEmail($email)) {
+                    $cliente_data = array(
+                        "id" => $cliente->id,
+                        "codigo" => $cliente->codigo,
+                        "nombre" => $cliente->nombre,
+                        "telefono" => $cliente->telefono,
+                        "email" => $cliente->email,
+                        "direccion" => $cliente->direccion,
+                        "created_at" => $cliente->created_at,
+                        "updated_at" => $cliente->updated_at
+                    );
+                    ApiResponse::success($cliente_data, "Cliente encontrado");
+                } else {
+                    ApiResponse::notFound("Cliente no encontrado");
+                }
+            } elseif(isset($_GET['telefono'])) {
+                $telefono = $_GET['telefono'];
+                if($cliente->findByTelefono($telefono)) {
+                    $cliente_data = array(
+                        "id" => $cliente->id,
+                        "codigo" => $cliente->codigo,
+                        "nombre" => $cliente->nombre,
+                        "telefono" => $cliente->telefono,
+                        "email" => $cliente->email,
+                        "direccion" => $cliente->direccion,
+                        "created_at" => $cliente->created_at,
+                        "updated_at" => $cliente->updated_at
+                    );
+                    ApiResponse::success($cliente_data, "Cliente encontrado");
+                } else {
+                    ApiResponse::notFound("Cliente no encontrado");
+                }
+            } elseif(isset($_GET['nombre'])) {
+                $nombre = $_GET['nombre'];
+                if($cliente->findByNombre($nombre)) {
+                    $cliente_data = array(
+                        "id" => $cliente->id,
+                        "codigo" => $cliente->codigo,
+                        "nombre" => $cliente->nombre,
+                        "telefono" => $cliente->telefono,
+                        "email" => $cliente->email,
+                        "direccion" => $cliente->direccion,
+                        "created_at" => $cliente->created_at,
+                        "updated_at" => $cliente->updated_at
+                    );
+                    ApiResponse::success($cliente_data, "Cliente encontrado");
+                } else {
+                    ApiResponse::notFound("Cliente no encontrado");
+                }
             } else {
                 $stmt = $cliente->read();
                 $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -91,6 +142,27 @@ try {
                 $cliente_existente = new Cliente($db);
                 if($cliente_existente->findByCodigo($cliente->codigo)) {
                     ApiResponse::badRequest("Ya existe un cliente con ese código");
+                }
+            }
+            
+            if(!empty($cliente->email)) {
+                $cliente_existente = new Cliente($db);
+                if($cliente_existente->findByEmail($cliente->email)) {
+                    ApiResponse::badRequest("Ya existe un cliente con ese email");
+                }
+            }
+            
+            if(!empty($cliente->telefono)) {
+                $cliente_existente = new Cliente($db);
+                if($cliente_existente->findByTelefono($cliente->telefono)) {
+                    ApiResponse::badRequest("Ya existe un cliente con ese teléfono");
+                }
+            }
+            
+            if(!empty($cliente->nombre)) {
+                $cliente_existente = new Cliente($db);
+                if($cliente_existente->findByNombre($cliente->nombre)) {
+                    ApiResponse::badRequest("Ya existe un cliente con ese nombre");
                 }
             }
             

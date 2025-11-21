@@ -92,7 +92,6 @@ class Cliente {
 
         $stmt = $this->conn->prepare($query);
 
-        // Limpiar datos
         $this->codigo = htmlspecialchars(strip_tags($this->codigo));
         $this->nombre = htmlspecialchars(strip_tags($this->nombre));
         $this->telefono = htmlspecialchars(strip_tags($this->telefono));
@@ -128,7 +127,6 @@ class Cliente {
         }
     }
 
-    // Leer todos los clientes
     public function read() {
         $query = "SELECT * FROM " . $this->table_name . " ORDER BY created_at DESC";
         $stmt = $this->conn->prepare($query);
@@ -136,7 +134,6 @@ class Cliente {
         return $stmt;
     }
 
-    // Buscar cliente por código
     public function findByCodigo($codigo) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE codigo = :codigo LIMIT 1";
         $stmt = $this->conn->prepare($query);
@@ -160,11 +157,89 @@ class Cliente {
         return false;
     }
 
-    // Buscar cliente por ID
     public function findById($id) {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id = :id LIMIT 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":id", $id);
+        $stmt->execute();
+        
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if($row) {
+            $this->id = $row['id'];
+            $this->codigo = $row['codigo'];
+            $this->nombre = $row['nombre'];
+            $this->telefono = $row['telefono'];
+            $this->email = $row['email'];
+            $this->direccion = $row['direccion'];
+            $this->created_at = $row['created_at'];
+            $this->updated_at = $row['updated_at'];
+            return true;
+        }
+        
+        return false;
+    }
+
+    public function findByEmail($email) {
+        if (empty($email)) {
+            return false;
+        }
+        $query = "SELECT * FROM " . $this->table_name . " WHERE email = :email LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":email", $email);
+        $stmt->execute();
+        
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if($row) {
+            $this->id = $row['id'];
+            $this->codigo = $row['codigo'];
+            $this->nombre = $row['nombre'];
+            $this->telefono = $row['telefono'];
+            $this->email = $row['email'];
+            $this->direccion = $row['direccion'];
+            $this->created_at = $row['created_at'];
+            $this->updated_at = $row['updated_at'];
+            return true;
+        }
+        
+        return false;
+    }
+
+    public function findByTelefono($telefono) {
+        if (empty($telefono)) {
+            return false;
+        }
+        $telefonoNormalizado = preg_replace('/[-\s]/', '', $telefono);
+        $query = "SELECT * FROM " . $this->table_name . " WHERE REPLACE(REPLACE(telefono, '-', ''), ' ', '') = :telefono LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":telefono", $telefonoNormalizado);
+        $stmt->execute();
+        
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if($row) {
+            $this->id = $row['id'];
+            $this->codigo = $row['codigo'];
+            $this->nombre = $row['nombre'];
+            $this->telefono = $row['telefono'];
+            $this->email = $row['email'];
+            $this->direccion = $row['direccion'];
+            $this->created_at = $row['created_at'];
+            $this->updated_at = $row['updated_at'];
+            return true;
+        }
+        
+        return false;
+    }
+
+    public function findByNombre($nombre) {
+        if (empty($nombre)) {
+            return false;
+        }
+        $query = "SELECT * FROM " . $this->table_name . " WHERE nombre = :nombre LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":nombre", $nombre);
         $stmt->execute();
         
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -193,14 +268,12 @@ class Cliente {
 
         $stmt = $this->conn->prepare($query);
 
-        // Limpiar datos
         $this->nombre = htmlspecialchars(strip_tags($this->nombre));
         $this->telefono = htmlspecialchars(strip_tags($this->telefono));
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->direccion = htmlspecialchars(strip_tags($this->direccion));
         $this->id = htmlspecialchars(strip_tags($this->id));
 
-        // Bind valores
         $stmt->bindParam(":nombre", $this->nombre);
         $stmt->bindParam(":telefono", $this->telefono);
         $stmt->bindParam(":email", $this->email);
