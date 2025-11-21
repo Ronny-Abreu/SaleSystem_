@@ -268,13 +268,17 @@ export default function NuevaFactura() {
         link.target = "_blank"
         link.rel = "noopener noreferrer"
         link.style.display = "none"
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
         
-        setTimeout(() => {
-          router.push(`/facturas/${facturaCreada.id}`)
-        }, 500)
+        document.body.appendChild(link)
+        
+        requestAnimationFrame(() => {
+          link.click()
+          
+          setTimeout(() => {
+            document.body.removeChild(link)
+            router.push(`/facturas/${facturaCreada.id}`)
+          }, 1000)
+        })
       } else {
         openPdfInNewTab(pdfUrl)
         router.push(`/facturas/${facturaCreada.id}`)
