@@ -259,9 +259,26 @@ export default function NuevaFactura() {
       limpiarCarritoEnLocalStorage()
 
       const pdfUrl = buildPdfUrl(`api/facturas.php?action=generate_pdf&id=${facturaCreada.id}`)
-      openPdfInNewTab(pdfUrl)
-
-      router.push(`/facturas/${facturaCreada.id}`)
+      
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      
+      if (isMobile) {
+        const link = document.createElement("a")
+        link.href = pdfUrl
+        link.target = "_blank"
+        link.rel = "noopener noreferrer"
+        link.style.display = "none"
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        setTimeout(() => {
+          router.push(`/facturas/${facturaCreada.id}`)
+        }, 500)
+      } else {
+        openPdfInNewTab(pdfUrl)
+        router.push(`/facturas/${facturaCreada.id}`)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
     } finally {

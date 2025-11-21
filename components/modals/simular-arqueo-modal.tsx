@@ -294,9 +294,32 @@ export function SimularArqueoModal({
             }
           }, 500)
         })
+        
+        setTimeout(() => {
+          try {
+            if (printWindow.closed) {
+              alert("Por favor, permite que se abran ventanas emergentes para generar el PDF")
+            }
+          } catch (e) {
+          }
+        }, 300)
       } else {
-        alert("Por favor, permite que se abran ventanas emergentes para generar el PDF")
-        URL.revokeObjectURL(blobUrl)
+        try {
+          const testWindow = window.open("", "_blank")
+          if (!testWindow) {
+            alert("Por favor, permite que se abran ventanas emergentes para generar el PDF")
+            URL.revokeObjectURL(blobUrl)
+          } else {
+            testWindow.close()
+            setTimeout(() => {
+              URL.revokeObjectURL(blobUrl)
+            }, 1000)
+          }
+        } catch (e) {
+          setTimeout(() => {
+            URL.revokeObjectURL(blobUrl)
+          }, 1000)
+        }
       }
     }
   }
