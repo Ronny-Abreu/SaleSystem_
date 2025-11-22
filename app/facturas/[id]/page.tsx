@@ -237,9 +237,20 @@ export default function FacturaDetalle() {
                 <div>
                   <h3 className="font-semibold text-slate-900 mb-2">Factura</h3>
                   <p className="text-slate-600 text-sm">Número: {factura.numero_factura}</p>
-                  <p className="text-slate-600 text-sm">Fecha: {new Date(factura.fecha).toLocaleDateString("es-DO")}</p>
+                  <p className="text-slate-600 text-sm">Fecha: {(() => {
+                    const [year, month, day] = factura.fecha.split('-').map(Number)
+                    const fecha = new Date(year, month - 1, day)
+                    return fecha.toLocaleDateString("es-DO")
+                  })()}</p>
                   <p className="text-slate-600 text-sm">
-                    Creada: {new Date(factura.created_at).toLocaleDateString("es-DO")}
+                    Creada: {(() => {
+                      const fechaCreated = factura.created_at.includes('T') 
+                        ? factura.created_at.split('T')[0] 
+                        : factura.created_at.split(' ')[0]
+                      const [year, month, day] = fechaCreated.split('-').map(Number)
+                      const fecha = new Date(year, month - 1, day)
+                      return fecha.toLocaleDateString("es-DO")
+                    })()}
                   </p>
                 </div>
 

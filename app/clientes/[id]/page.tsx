@@ -41,7 +41,8 @@ export default function DetalleCliente() {
     })()
     
     return facturas.filter((factura) => {
-      const fechaFacturaObj = new Date(factura.fecha + 'T00:00:00')
+      const [year, month, day] = factura.fecha.split('-').map(Number)
+      const fechaFacturaObj = new Date(year, month - 1, day)
       const fechaFactura = (() => {
         const year = fechaFacturaObj.getFullYear()
         const month = String(fechaFacturaObj.getMonth() + 1).padStart(2, '0')
@@ -361,7 +362,11 @@ export default function DetalleCliente() {
                                 {factura.numero_factura}
                               </td>
                               <td className="py-3 px-2 md:px-4 text-slate-600 text-sm">
-                                {new Date(factura.fecha).toLocaleDateString("es-DO")}
+                                {(() => {
+                                  const [year, month, day] = factura.fecha.split('-').map(Number)
+                                  const fecha = new Date(year, month - 1, day)
+                                  return fecha.toLocaleDateString("es-DO")
+                                })()}
                               </td>
                               <td className="py-3 px-2 md:px-4 text-right font-semibold text-slate-900 text-sm">
                                 RD${factura.total.toLocaleString()}

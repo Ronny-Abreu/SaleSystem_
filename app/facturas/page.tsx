@@ -29,6 +29,7 @@ export default function FacturasPage() {
     fecha_hasta: filtroFechaHasta || undefined,
   })
 
+
   // Filtrar facturas por búsqueda local
   const facturasFiltradas = facturas.filter((factura) => {
     if (!busqueda) return true
@@ -271,7 +272,11 @@ export default function FacturasPage() {
                               {factura.cliente?.nombre || "Cliente desconocido"}
                             </td>
                             <td className="py-3 px-4 text-slate-600">
-                              {new Date(factura.fecha).toLocaleDateString("es-DO")}
+                              {(() => {
+                                const [year, month, day] = factura.fecha.split('-').map(Number)
+                                const fecha = new Date(year, month - 1, day)
+                                return fecha.toLocaleDateString("es-DO")
+                              })()}
                             </td>
                             <td className="py-3 px-4 text-right font-semibold text-slate-900">
                               RD${factura.total.toLocaleString()}
@@ -325,7 +330,11 @@ export default function FacturasPage() {
                           Cliente: {factura.cliente?.nombre || "Cliente desconocido"}
                         </p>
                         <p className="text-sm text-slate-600 mb-3">
-                          Fecha: {new Date(factura.fecha).toLocaleDateString("es-DO")}
+                          Fecha: {(() => {
+                            const [year, month, day] = factura.fecha.split('-').map(Number)
+                            const fecha = new Date(year, month - 1, day)
+                            return fecha.toLocaleDateString("es-DO")
+                          })()}
                         </p>
                         <div className="flex items-center justify-between">
                           <span className="text-lg font-semibold text-slate-900">
