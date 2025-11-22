@@ -276,11 +276,18 @@ try {
                 ApiResponse::success($estadisticas, "Estadísticas obtenidas");
             } else {
                 // Obtener todas las facturas con filtros
-                $fecha_desde = $_GET['fecha_desde'] ?? null;
-                $fecha_hasta = $_GET['fecha_hasta'] ?? null;
+                $fecha_desde = isset($_GET['fecha_desde']) ? trim($_GET['fecha_desde']) : null;
+                $fecha_hasta = isset($_GET['fecha_hasta']) ? trim($_GET['fecha_hasta']) : null;
                 $estado = $_GET['estado'] ?? null;
                 $cliente_id = isset($_GET['cliente_id']) ? intval($_GET['cliente_id']) : null;
                 $incluir_detalles = isset($_GET['incluir_detalles']) && $_GET['incluir_detalles'] === 'true';
+                
+                if ($fecha_desde && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha_desde)) {
+                    $fecha_desde = null;
+                }
+                if ($fecha_hasta && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha_hasta)) {
+                    $fecha_hasta = null;
+                }
                 
                 if ($incluir_detalles) {
                     $facturas = $factura->readWithDetails($fecha_desde, $fecha_hasta, $estado, $cliente_id);

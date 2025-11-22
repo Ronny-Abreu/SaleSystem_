@@ -156,14 +156,19 @@ class Factura {
         
         $params = array();
         
-        if ($fecha_desde) {
-            $query .= " AND f.fecha >= :fecha_desde";
+        if ($fecha_desde && $fecha_hasta && $fecha_desde === $fecha_hasta) {
+            $query .= " AND f.fecha = :fecha_desde";
             $params[':fecha_desde'] = $fecha_desde;
-        }
-        
-        if ($fecha_hasta) {
-            $query .= " AND f.fecha <= :fecha_hasta";
-            $params[':fecha_hasta'] = $fecha_hasta;
+        } else {
+            if ($fecha_desde) {
+                $query .= " AND f.fecha >= :fecha_desde";
+                $params[':fecha_desde'] = $fecha_desde;
+            }
+            
+            if ($fecha_hasta) {
+                $query .= " AND f.fecha <= :fecha_hasta";
+                $params[':fecha_hasta'] = $fecha_hasta;
+            }
         }
         
         if ($estado) {
@@ -181,7 +186,11 @@ class Factura {
         $stmt = $this->conn->prepare($query);
         
         foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+            if (strpos($key, 'fecha') !== false) {
+                $stmt->bindValue($key, $value, PDO::PARAM_STR);
+            } else {
+                $stmt->bindValue($key, $value);
+            }
         }
         
         $stmt->execute();
