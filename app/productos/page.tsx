@@ -47,7 +47,6 @@ export default function ProductosPage() {
     localStorage.setItem("carrito-expandido", JSON.stringify(carritoExpandido)) // Guardar estado de carritoExpandido en localStorage cada vez que cambie
   }, [carritoExpandido])
 
-  // Escuchar eventos del sidebar
   useEffect(() => {
     const handleSidebarToggle = (event: CustomEvent) => {
       setSidebarOpen(event.detail.isOpen)
@@ -71,18 +70,30 @@ export default function ProductosPage() {
     }
   }, [])
 
-  // Guardar carrito en localStorage cada vez que cambie
   useEffect(() => {
     localStorage.setItem("carrito-productos", JSON.stringify(carrito))
   }, [carrito])
+
+  const categoriasReales = productos.reduce((acc, producto) => {
+    if (producto.categoria && producto.categoria_id) {
+      const categoriaExistente = acc.find((c) => c.id === producto.categoria_id)
+      if (!categoriaExistente) {
+        acc.push({
+          id: producto.categoria_id,
+          nombre: producto.categoria.nombre,
+          color: producto.categoria.color || "#6B7280",
+        })
+      }
+    }
+    return acc
+  }, [] as Array<{ id: number; nombre: string; color: string }>)
 
   // Filtrar productos por categoría
   const productosFiltrados = selectedCategoria
     ? productos.filter((p) => p.categoria_id === selectedCategoria)
     : productos
 
-  // Agrupar productos por categoría
-  const productosAgrupados = CATEGORIAS.map((categoria) => ({
+  const productosAgrupados = categoriasReales.map((categoria) => ({
     ...categoria,
     productos: productos.filter((p) => p.categoria_id === categoria.id),
   })).filter((grupo) => grupo.productos.length > 0)
@@ -311,7 +322,7 @@ export default function ProductosPage() {
                   </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                  {CATEGORIAS.map((categoria) => {
+                  {categoriasReales.map((categoria) => {
                     const count = productos.filter((p) => p.categoria_id === categoria.id).length
                     return (
                       <button
@@ -384,7 +395,7 @@ export default function ProductosPage() {
               /* Vista filtrada por categoría */
               <div className="card">
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                  {CATEGORIAS.find((c) => c.id === selectedCategoria)?.nombre}
+                  {categoriasReales.find((c) => c.id === selectedCategoria)?.nombre || "Categoría"}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {productosFiltrados.map((producto) => (

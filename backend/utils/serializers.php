@@ -94,7 +94,11 @@ class Serializers {
         return array(
             "id" => intval($cliente['id'] ?? 0),
             "codigo" => $cliente['codigo'] ?? '',
-            "nombre" => $cliente['nombre'] ?? ''
+            "nombre" => $cliente['nombre'] ?? '',
+            "telefono" => $cliente['telefono'] ?? '',
+            "email" => $cliente['email'] ?? '',
+            "direccion" => $cliente['direccion'] ?? '',
+            "created_at" => $cliente['created_at'] ?? ''
         );
     }
     
@@ -106,7 +110,9 @@ class Serializers {
             "precio" => floatval($producto['precio'] ?? 0),
             "stock" => intval($producto['stock'] ?? 0),
             "activo" => boolval($producto['activo'] ?? false),
-            "categoria_nombre" => $producto['categoria_nombre'] ?? null
+            "categoria_id" => isset($producto['categoria_id']) && $producto['categoria_id'] !== null ? intval($producto['categoria_id']) : null,
+            "categoria_nombre" => $producto['categoria_nombre'] ?? null,
+            "categoria_color" => $producto['categoria_color'] ?? null
         );
     }
     

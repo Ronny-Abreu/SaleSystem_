@@ -334,7 +334,16 @@ export default function ClientesPage() {
                       </div>
                     </div>
                     <div className="border-t border-slate-200 p-3 bg-slate-50 flex justify-between items-center text-xs text-slate-500">
-                      <span>Registrado: {new Date(cliente.created_at).toLocaleDateString()}</span>
+                      <span>Registrado: {(() => {
+                        if (!cliente.created_at) return "Fecha no disponible"
+                        const fechaCreated = cliente.created_at.includes('T') 
+                          ? cliente.created_at.split('T')[0] 
+                          : cliente.created_at.split(' ')[0]
+                        const [year, month, day] = fechaCreated.split('-').map(Number)
+                        if (isNaN(year) || isNaN(month) || isNaN(day)) return "Fecha inválida"
+                        const fecha = new Date(year, month - 1, day)
+                        return fecha.toLocaleDateString("es-DO")
+                      })()}</span>
                     </div>
                   </div>
                 )})}
