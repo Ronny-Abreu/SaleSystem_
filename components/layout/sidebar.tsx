@@ -48,26 +48,44 @@ export function Sidebar() {
         onClick={() => setIsOpen(!isOpen)}
         aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
         aria-expanded={isOpen}
-        className={`lg:hidden fixed top-4 z-[80] p-2 bg-white rounded-lg shadow-md transition-all duration-300 ${
+        className={`lg:hidden fixed z-[80] p-2 bg-white rounded-lg shadow-md transition-all duration-300 ${
           isOpen ? 'left-[272px]' : 'left-4'
         }`}
+        style={{
+          top: `calc(1rem + env(safe-area-inset-top))`,
+        }}
       >
         {isOpen ? <X size={24} color="black" /> : <Menu size={24} color="black" />}
       </button>
 
       {/* Overlay */}
       {isOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-[60]" onClick={() => setIsOpen(false)} />
+        <div 
+          className="lg:hidden fixed left-0 right-0 bg-black bg-opacity-50 z-[60]" 
+          onClick={() => setIsOpen(false)}
+          style={{
+            top: 0,
+            bottom: 0,
+            height: '100dvh',
+          }}
+        />
       )}
 
       {/* Sidebar */}
       <aside
         className={`
-        fixed lg:static inset-y-0 left-0 z-[70]
+        fixed lg:static left-0 z-[70]
         w-64 bg-white border-r border-slate-200
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
+        style={{
+          top: 0,
+          bottom: 0,
+          height: '100dvh',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
