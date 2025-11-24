@@ -16,6 +16,7 @@ if (ob_get_level()) {
 authorizeRequest();
 
 require_once '../utils/response.php';
+require_once '../utils/serializers.php';
 require_once '../config/database.php';
 require_once '../models/Cliente.php';
 
@@ -30,37 +31,17 @@ try {
     switch($method) {
         case 'GET':
             if(isset($_GET['codigo'])) {
-                // Buscar cliente por código
                 $codigo = $_GET['codigo'];
                 if($cliente->findByCodigo($codigo)) {
-                    $cliente_data = array(
-                        "id" => $cliente->id,
-                        "codigo" => $cliente->codigo,
-                        "nombre" => $cliente->nombre,
-                        "telefono" => $cliente->telefono,
-                        "email" => $cliente->email,
-                        "direccion" => $cliente->direccion,
-                        "created_at" => $cliente->created_at,
-                        "updated_at" => $cliente->updated_at
-                    );
+                    $cliente_data = Serializers::serializeClienteCompleto($cliente);
                     ApiResponse::success($cliente_data, "Cliente encontrado");
                 } else {
                     ApiResponse::notFound("Cliente no encontrado");
                 }
             } elseif(isset($_GET['id'])) {
-                // Buscar cliente por ID
                 $id = $_GET['id'];
                 if($cliente->findById($id)) {
-                    $cliente_data = array(
-                        "id" => $cliente->id,
-                        "codigo" => $cliente->codigo,
-                        "nombre" => $cliente->nombre,
-                        "telefono" => $cliente->telefono,
-                        "email" => $cliente->email,
-                        "direccion" => $cliente->direccion,
-                        "created_at" => $cliente->created_at,
-                        "updated_at" => $cliente->updated_at
-                    );
+                    $cliente_data = Serializers::serializeClienteCompleto($cliente);
                     ApiResponse::success($cliente_data, "Cliente encontrado");
                 } else {
                     ApiResponse::notFound("Cliente no encontrado");
@@ -68,16 +49,7 @@ try {
             } elseif(isset($_GET['email'])) {
                 $email = $_GET['email'];
                 if($cliente->findByEmail($email)) {
-                    $cliente_data = array(
-                        "id" => $cliente->id,
-                        "codigo" => $cliente->codigo,
-                        "nombre" => $cliente->nombre,
-                        "telefono" => $cliente->telefono,
-                        "email" => $cliente->email,
-                        "direccion" => $cliente->direccion,
-                        "created_at" => $cliente->created_at,
-                        "updated_at" => $cliente->updated_at
-                    );
+                    $cliente_data = Serializers::serializeClienteCompleto($cliente);
                     ApiResponse::success($cliente_data, "Cliente encontrado");
                 } else {
                     ApiResponse::notFound("Cliente no encontrado");
@@ -85,16 +57,7 @@ try {
             } elseif(isset($_GET['telefono'])) {
                 $telefono = $_GET['telefono'];
                 if($cliente->findByTelefono($telefono)) {
-                    $cliente_data = array(
-                        "id" => $cliente->id,
-                        "codigo" => $cliente->codigo,
-                        "nombre" => $cliente->nombre,
-                        "telefono" => $cliente->telefono,
-                        "email" => $cliente->email,
-                        "direccion" => $cliente->direccion,
-                        "created_at" => $cliente->created_at,
-                        "updated_at" => $cliente->updated_at
-                    );
+                    $cliente_data = Serializers::serializeClienteCompleto($cliente);
                     ApiResponse::success($cliente_data, "Cliente encontrado");
                 } else {
                     ApiResponse::notFound("Cliente no encontrado");
@@ -102,23 +65,15 @@ try {
             } elseif(isset($_GET['nombre'])) {
                 $nombre = $_GET['nombre'];
                 if($cliente->findByNombre($nombre)) {
-                    $cliente_data = array(
-                        "id" => $cliente->id,
-                        "codigo" => $cliente->codigo,
-                        "nombre" => $cliente->nombre,
-                        "telefono" => $cliente->telefono,
-                        "email" => $cliente->email,
-                        "direccion" => $cliente->direccion,
-                        "created_at" => $cliente->created_at,
-                        "updated_at" => $cliente->updated_at
-                    );
+                    $cliente_data = Serializers::serializeClienteCompleto($cliente);
                     ApiResponse::success($cliente_data, "Cliente encontrado");
                 } else {
                     ApiResponse::notFound("Cliente no encontrado");
                 }
             } else {
                 $stmt = $cliente->read();
-                $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $clientes_raw = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $clientes = Serializers::serializeClientesLista($clientes_raw);
                 ApiResponse::success($clientes, "Clientes obtenidos exitosamente");
             }
             break;
@@ -167,14 +122,7 @@ try {
             }
             
             if($cliente->create()) {
-                $cliente_data = array(
-                    "id" => $cliente->id,
-                    "codigo" => $cliente->codigo,
-                    "nombre" => $cliente->nombre,
-                    "telefono" => $cliente->telefono,
-                    "email" => $cliente->email,
-                    "direccion" => $cliente->direccion
-                );
+                $cliente_data = Serializers::serializeClienteCompleto($cliente);
                 ApiResponse::success($cliente_data, "Cliente creado exitosamente", 201);
             } else {
                 ApiResponse::error("Error al crear el cliente");
@@ -206,14 +154,7 @@ try {
             $cliente->validate();
             
             if($cliente->update()) {
-                $cliente_data = array(
-                    "id" => $cliente->id,
-                    "codigo" => $cliente->codigo,
-                    "nombre" => $cliente->nombre,
-                    "telefono" => $cliente->telefono,
-                    "email" => $cliente->email,
-                    "direccion" => $cliente->direccion
-                );
+                $cliente_data = Serializers::serializeClienteCompleto($cliente);
                 ApiResponse::success($cliente_data, "Cliente actualizado exitosamente");
             } else {
                 ApiResponse::error("Error al actualizar el cliente");

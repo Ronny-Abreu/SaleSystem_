@@ -16,6 +16,7 @@ if (ob_get_level()) {
 authorizeRequest();
 
 require_once '../utils/response.php';
+require_once '../utils/serializers.php';
 require_once '../config/database.php';
 require_once '../models/Factura.php';
 require_once '../models/Cliente.php';
@@ -220,7 +221,7 @@ try {
                 $dompdf->loadHtml($html);
                 $dompdf->setPaper('A4', 'portrait');
                 $dompdf->render();
-                ob_clean(); // Limpiar cualquier salida antes de enviar el PDF
+                ob_clean();
                 $dompdf->stream("factura_" . $factura_pdf->numero_factura . ".pdf", array("Attachment" => false));
                 exit;
 
@@ -229,20 +230,7 @@ try {
                 // Buscar factura por ID
                 $id = $_GET['id'];
                 if($factura->findById($id)) {
-                    $factura_data = array(
-                        "id" => $factura->id,
-                        "numero_factura" => $factura->numero_factura,
-                        "cliente_id" => $factura->cliente_id,
-                        "fecha" => $factura->fecha,
-                        "subtotal" => floatval($factura->subtotal),
-                        "total" => floatval($factura->total),
-                        "comentario" => $factura->comentario,
-                        "estado" => $factura->estado,
-                        "created_at" => $factura->created_at,
-                        "updated_at" => $factura->updated_at,
-                        "cliente" => $factura->cliente,
-                        "detalles" => $factura->detalles
-                    );
+                    $factura_data = Serializers::serializeFacturaCompleta($factura);
                     ApiResponse::success($factura_data, "Factura encontrada");
                 } else {
                     ApiResponse::notFound("Factura no encontrada");
@@ -251,20 +239,7 @@ try {
                 // Buscar factura por número
                 $numero = $_GET['numero'];
                 if($factura->findByNumero($numero)) {
-                    $factura_data = array(
-                        "id" => $factura->id,
-                        "numero_factura" => $factura->numero_factura,
-                        "cliente_id" => $factura->cliente_id,
-                        "fecha" => $factura->fecha,
-                        "subtotal" => floatval($factura->subtotal),
-                        "total" => floatval($factura->total),
-                        "comentario" => $factura->comentario,
-                        "estado" => $factura->estado,
-                        "created_at" => $factura->created_at,
-                        "updated_at" => $factura->updated_at,
-                        "cliente" => $factura->cliente,
-                        "detalles" => $factura->detalles
-                    );
+                    $factura_data = Serializers::serializeFacturaCompleta($factura);
                     ApiResponse::success($factura_data, "Factura encontrada");
                 } else {
                     ApiResponse::notFound("Factura no encontrada");
@@ -290,28 +265,23 @@ try {
                 }
                 
                 if ($incluir_detalles) {
-                    $facturas = $factura->readWithDetails($fecha_desde, $fecha_hasta, $estado, $cliente_id);
+                    $facturas_raw = $factura->readWithDetails($fecha_desde, $fecha_hasta, $estado, $cliente_id);
+                    $facturas = array();
+                    foreach ($facturas_raw as $factura_raw) {
+                        $factura_serializada = Serializers::serializeFacturaLista($factura_raw);
+                        if (isset($factura_raw['detalles']) && is_array($factura_raw['detalles']) && !empty($factura_raw['detalles'])) {
+                            $factura_serializada['detalles'] = array_map(function($detalle) {
+                                return Serializers::serializeFacturaDetalle($detalle);
+                            }, $factura_raw['detalles']);
+                        }
+                        $facturas[] = $factura_serializada;
+                    }
                 } else {
                     $stmt = $factura->read($fecha_desde, $fecha_hasta, $estado, $cliente_id);
                     $facturas = array();
                     
                     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        $facturas[] = array(
-                            "id" => $row['id'],
-                            "numero_factura" => $row['numero_factura'],
-                            "cliente_id" => $row['cliente_id'],
-                            "fecha" => $row['fecha'],
-                            "subtotal" => floatval($row['subtotal']),
-                            "total" => floatval($row['total']),
-                            "comentario" => $row['comentario'],
-                            "estado" => $row['estado'],
-                            "created_at" => $row['created_at'],
-                            "updated_at" => $row['updated_at'],
-                            "cliente" => array(
-                                "codigo" => $row['cliente_codigo'],
-                                "nombre" => $row['cliente_nombre']
-                            )
-                        );
+                        $facturas[] = Serializers::serializeFacturaLista($row);
                     }
                 }
                 
@@ -328,7 +298,6 @@ try {
                 ApiResponse::badRequest("Datos JSON inválidos. Input recibido: " . substr($input, 0, 100));
             }
             
-            // Verificar que el cliente existe
             $cliente = new Cliente($db);
             if(!$cliente->findById($data->cliente_id)) {
                 ApiResponse::badRequest("Cliente con ID {$data->cliente_id} no encontrado");
@@ -343,12 +312,10 @@ try {
             
             $detalles_data = $data->detalles ?? array();
             
-            // Convertir detalles a array si es necesario
             if (is_object($detalles_data)) {
                 $detalles_data = (array) $detalles_data;
             }
             
-            // Convertir cada detalle a array
             $detalles_array = array();
             foreach ($detalles_data as $detalle) {
                 if (is_object($detalle)) {
@@ -358,25 +325,13 @@ try {
                 }
             }
             
-            // Validar datos
             $factura->validate($detalles_array);
             
             if($factura->create($detalles_array)) {
                 // Obtener la factura completa creada
                 $factura->findById($factura->id);
                 
-                $factura_data = array(
-                    "id" => $factura->id,
-                    "numero_factura" => $factura->numero_factura,
-                    "cliente_id" => $factura->cliente_id,
-                    "fecha" => $factura->fecha,
-                    "subtotal" => floatval($factura->subtotal),
-                    "total" => floatval($factura->total),
-                    "comentario" => $factura->comentario,
-                    "estado" => $factura->estado,
-                    "cliente" => $factura->cliente,
-                    "detalles" => $factura->detalles
-                );
+                $factura_data = Serializers::serializeFacturaCompleta($factura);
                 
                 ApiResponse::success($factura_data, "Factura creada exitosamente", 201);
             } else {
@@ -385,7 +340,6 @@ try {
             break;
             
         case 'PUT':
-            // Actualizar estado de factura
             if(!isset($_GET['id'])) {
                 ApiResponse::badRequest("ID de la factura requerido");
             }
@@ -398,7 +352,6 @@ try {
             
             $factura->id = $_GET['id'];
             
-            // Verificar que la factura existe
             if(!$factura->findById($factura->id)) {
                 ApiResponse::notFound("Factura no encontrada");
             }

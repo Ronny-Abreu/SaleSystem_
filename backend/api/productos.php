@@ -15,6 +15,7 @@ if (ob_get_level()) {
 authorizeRequest();
 
 require_once '../utils/response.php';
+require_once '../utils/serializers.php';
 require_once '../config/database.php';
 require_once '../models/Producto.php';
 
@@ -28,20 +29,9 @@ try {
     switch($method) {
         case 'GET':
             if(isset($_GET['id'])) {
-                // Buscar producto por ID
                 $id = $_GET['id'];
                 if($producto->findById($id)) {
-                    $producto_data = array(
-                        "id" => $producto->id,
-                        "nombre" => $producto->nombre,
-                        "precio" => floatval($producto->precio),
-                        "descripcion" => $producto->descripcion,
-                        "stock" => intval($producto->stock),
-                        "activo" => boolval($producto->activo),
-                        "categoria_id" => $producto->categoria_id ? intval($producto->categoria_id) : null,
-                        "created_at" => $producto->created_at,
-                        "updated_at" => $producto->updated_at
-                    );
+                    $producto_data = Serializers::serializeProductoCompleto($producto);
                     ApiResponse::success($producto_data, "Producto encontrado");
                 } else {
                     ApiResponse::notFound("Producto no encontrado");
@@ -59,24 +49,13 @@ try {
                 }
                 
                 $stmt = $producto->read($filtro_activos);
-                $productos = array();
+                $productos_raw = array();
 
                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    $productos[] = array(
-                        "id" => intval($row['id']),
-                        "nombre" => $row['nombre'],
-                        "precio" => floatval($row['precio']),
-                        "descripcion" => $row['descripcion'],
-                        "stock" => intval($row['stock']),
-                        "activo" => boolval($row['activo']),
-                        "categoria_id" => $row['categoria_id'] ? intval($row['categoria_id']) : null,
-                        "categoria_nombre" => $row['categoria_nombre'],
-                        "categoria_color" => $row['categoria_color'],
-                        "categoria_descripcion" => $row['categoria_descripcion'],
-                        "created_at" => $row['created_at'],
-                        "updated_at" => $row['updated_at']
-                    );
+                    $productos_raw[] = $row;
                 }
+                
+                $productos = Serializers::serializeProductosLista($productos_raw);
                 
                 $mensaje = "Productos obtenidos exitosamente";
                 if($filtro_activos === true) {
@@ -90,7 +69,6 @@ try {
             break;
             
         case 'POST':
-            // Crear nuevo producto
             $data = json_decode(file_get_contents("php://input"));
             
             if(!$data) {
@@ -104,19 +82,10 @@ try {
             $producto->activo = $data->activo ?? true;
             $producto->categoria_id = $data->categoria_id ?? null;
             
-            // Validar datos
             $producto->validate();
             
             if($producto->create()) {
-                $producto_data = array(
-                    "id" => $producto->id,
-                    "nombre" => $producto->nombre,
-                    "precio" => floatval($producto->precio),
-                    "descripcion" => $producto->descripcion,
-                    "stock" => intval($producto->stock),
-                    "activo" => boolval($producto->activo),
-                    "categoria_id" => $producto->categoria_id ? intval($producto->categoria_id) : null
-                );
+                $producto_data = Serializers::serializeProductoCompleto($producto);
                 ApiResponse::success($producto_data, "Producto creado exitosamente", 201);
             } else {
                 ApiResponse::error("Error al crear el producto");
@@ -124,7 +93,6 @@ try {
             break;
             
         case 'PUT':
-            // Actualizar producto
             if(!isset($_GET['id'])) {
                 ApiResponse::badRequest("ID del producto requerido");
             }
@@ -137,7 +105,6 @@ try {
             
             $producto->id = $_GET['id'];
             
-            // Verificar que el producto existe
             if(!$producto->findById($producto->id)) {
                 ApiResponse::notFound("Producto no encontrado");
             }
@@ -150,19 +117,10 @@ try {
             $producto->activo = isset($data->activo) ? $data->activo : $producto->activo;
             $producto->categoria_id = isset($data->categoria_id) ? $data->categoria_id : $producto->categoria_id;
             
-            // Validar datos
             $producto->validate();
             
             if($producto->update()) {
-                $producto_data = array(
-                    "id" => $producto->id,
-                    "nombre" => $producto->nombre,
-                    "precio" => floatval($producto->precio),
-                    "descripcion" => $producto->descripcion,
-                    "stock" => intval($producto->stock),
-                    "activo" => boolval($producto->activo),
-                    "categoria_id" => $producto->categoria_id ? intval($producto->categoria_id) : null
-                );
+                $producto_data = Serializers::serializeProductoCompleto($producto);
                 ApiResponse::success($producto_data, "Producto actualizado exitosamente");
             } else {
                 ApiResponse::error("Error al actualizar el producto");
@@ -170,14 +128,12 @@ try {
             break;
             
         case 'DELETE':
-            // Eliminar producto
             if(!isset($_GET['id'])) {
                 ApiResponse::badRequest("ID del producto requerido");
             }
             
             $producto->id = $_GET['id'];
             
-            // Verificar que el producto exista
             if(!$producto->findById($producto->id)) {
                 ApiResponse::notFound("Producto no encontrado");
             }
