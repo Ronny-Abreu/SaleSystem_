@@ -5,7 +5,7 @@ import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { ArrowLeft, Edit, Phone, Mail, MapPin, Calendar, FileText, Eye, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react"
 import Link from "next/link"
-import { useParams, useSearchParams } from "next/navigation"
+import { useParams, useSearchParams, useRouter } from "next/navigation"
 import { clientesApi, facturasApi } from "@/lib/api"
 import type { Cliente, Factura } from "@/lib/types"
 import { useAuthenticatedApi } from "@/hooks/useAuthenticatedApi"
@@ -13,6 +13,7 @@ import { useAuthenticatedApi } from "@/hooks/useAuthenticatedApi"
 export default function DetalleCliente() {
   const params = useParams()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const success = searchParams.get("success")
   const fromClientesHoy = searchParams.get("fromClientesHoy") === "true"
   const fromDashboard = searchParams.get("fromDashboard") === "true"
@@ -352,48 +353,67 @@ export default function DetalleCliente() {
                           </tr>
                         </thead>
                         <tbody>
-                          {facturasOrdenadas.map((factura) => (
-                            <tr key={factura.id} className="border-b border-slate-100 hover:bg-slate-50">
-                              <td
-                                className={`py-3 px-2 md:px-4 font-medium text-sm ${
-                                  factura.estado === "pendiente" ? "text-red-600" : "text-slate-900"
-                                }`}
+                          {facturasOrdenadas.map((factura) => {
+                            const facturaUrl = `/facturas/${factura.id}?fromClient=${clienteId}${fromDashboard ? "&fromDashboard=true" : fromClientesHoy ? "&fromClientesHoy=true" : ""}`
+                            
+                            const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
+                              if (window.innerWidth < 768) {
+                                const target = e.target as HTMLElement
+                                if (target.closest('a')) {
+                                  return
+                                }
+                                router.push(facturaUrl)
+                              }
+                            }
+
+                            return (
+                              <tr 
+                                key={factura.id} 
+                                onClick={handleRowClick}
+                                className="border-b border-slate-100 hover:bg-slate-50 md:cursor-default cursor-pointer"
                               >
-                                {factura.numero_factura}
-                              </td>
-                              <td className="py-3 px-2 md:px-4 text-slate-600 text-sm">
-                                {(() => {
-                                  const [year, month, day] = factura.fecha.split('-').map(Number)
-                                  const fecha = new Date(year, month - 1, day)
-                                  return fecha.toLocaleDateString("es-DO")
-                                })()}
-                              </td>
-                              <td className="py-3 px-2 md:px-4 text-right font-semibold text-slate-900 text-sm">
-                                RD${factura.total.toLocaleString()}
-                              </td>
-                              <td className="py-3 px-2 md:px-4 text-center">
-                                <span
-                                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    factura.estado === "pagada"
-                                      ? "bg-green-100 text-green-800"
-                                      : factura.estado === "pendiente"
-                                        ? "bg-yellow-100 text-yellow-800"
-                                        : "bg-red-100 text-red-800"
+                                <td
+                                  className={`py-3 px-2 md:px-4 font-medium text-sm ${
+                                    factura.estado === "pendiente" ? "text-red-600" : "text-slate-900"
                                   }`}
                                 >
-                                  {factura.estado}
-                                </span>
-                              </td>
-                              <td className="py-3 px-2 md:px-4 text-center">
-                                <Link
-                                  href={`/facturas/${factura.id}?fromClient=${clienteId}${fromDashboard ? "&fromDashboard=true" : fromClientesHoy ? "&fromClientesHoy=true" : ""}`}
-                                  className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"
-                                >
-                                  <Eye size={16} />
-                                </Link>
-                              </td>
-                            </tr>
-                          ))}
+                                  {factura.numero_factura}
+                                </td>
+                                <td className="py-3 px-2 md:px-4 text-slate-600 text-sm">
+                                  {(() => {
+                                    const [year, month, day] = factura.fecha.split('-').map(Number)
+                                    const fecha = new Date(year, month - 1, day)
+                                    return fecha.toLocaleDateString("es-DO")
+                                  })()}
+                                </td>
+                                <td className="py-3 px-2 md:px-4 text-right font-semibold text-slate-900 text-sm">
+                                  RD${factura.total.toLocaleString()}
+                                </td>
+                                <td className="py-3 px-2 md:px-4 text-center">
+                                  <span
+                                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      factura.estado === "pagada"
+                                        ? "bg-green-100 text-green-800"
+                                        : factura.estado === "pendiente"
+                                          ? "bg-yellow-100 text-yellow-800"
+                                          : "bg-red-100 text-red-800"
+                                    }`}
+                                  >
+                                    {factura.estado}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-2 md:px-4 text-center">
+                                  <Link
+                                    href={facturaUrl}
+                                    className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Eye size={16} />
+                                  </Link>
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
