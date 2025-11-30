@@ -9,6 +9,7 @@ import { useFacturas } from "@/hooks/useFacturas"
 import { useClientes } from "@/hooks/useClientes"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ClienteSearchModal } from "@/components/modals/cliente-search-modal"
+import { ClienteCreateModal } from "@/components/modals/cliente-create-modal"
 import { ProductoSearchModal } from "@/components/modals/producto-search-modal"
 import { buildBackendUrl, buildPdfUrl, openPdfInNewTab } from "@/lib/config"
 import type { Cliente, Producto } from "@/lib/types"
@@ -36,6 +37,7 @@ export default function NuevaFactura() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showClienteModal, setShowClienteModal] = useState(false)
+  const [showCreateClienteModal, setShowCreateClienteModal] = useState(false)
   const [showProductoModal, setShowProductoModal] = useState(false)
   const [estadoFactura, setEstadoFactura] = useState<"pagada" | "pendiente">("pagada")
 
@@ -51,9 +53,15 @@ export default function NuevaFactura() {
 
   useEffect(() => {
     const loadClienteFromUrl = async () => {
-      if (clienteIdFromUrl && !cliente) {
+      // Solo cargar si hay un clienteId en la URL y el cliente actual no coincide
+      if (clienteIdFromUrl) {
+        const clienteIdNum = Number.parseInt(clienteIdFromUrl)
+        if (cliente?.id === clienteIdNum) {
+          return
+        }
+        
         try {
-          const clienteCargado = await buscarPorId(Number.parseInt(clienteIdFromUrl))
+          const clienteCargado = await buscarPorId(clienteIdNum)
           if (clienteCargado) {
             setCliente(clienteCargado)
 
@@ -79,7 +87,7 @@ export default function NuevaFactura() {
       }
     }
     loadClienteFromUrl()
-  }, [clienteIdFromUrl, cliente, buscarPorId, fromIngresosHoy, fromClientesHoy, fromDashboard])
+  }, [clienteIdFromUrl])
 
   // Efecto para precargar productos del carrito si viene desde la pantalla de productos
   useEffect(() => {
@@ -126,6 +134,21 @@ export default function NuevaFactura() {
 
   const handleSelectCliente = (clienteSeleccionado: Cliente) => {
     setCliente(clienteSeleccionado)
+  }
+
+  const handleClienteCreated = (clienteCreado: Cliente) => {
+    setCliente(clienteCreado)
+    
+    const params = new URLSearchParams(window.location.search)
+    params.delete('clienteId')
+    params.delete('cliente')
+    if (fromIngresosHoy) params.set('fromIngresosHoy', 'true')
+    if (fromClientesHoy) params.set('fromClientesHoy', 'true')
+    if (fromDashboard) params.set('fromDashboard', 'true')
+    const newUrl = params.toString() 
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname
+    window.history.replaceState({}, "", newUrl)
   }
 
   const agregarItem = () => {
@@ -425,19 +448,7 @@ export default function NuevaFactura() {
                       </button>
 
                       <button
-                        onClick={() => {
-                          // URL de retorno con todos los parámetros necesarios
-                          let returnUrl = '/facturas/nueva'
-                          const params: string[] = []
-                          if (fromIngresosHoy) params.push('fromIngresosHoy=true')
-                          if (fromClientesHoy) params.push('fromClientesHoy=true')
-                          if (fromDashboard) params.push('fromDashboard=true')
-                          if (clienteIdFromUrl) params.push(`cliente=${clienteIdFromUrl}`)
-                          if (params.length > 0) {
-                            returnUrl += '?' + params.join('&')
-                          }
-                          router.push(`/clientes/nuevo?returnTo=${encodeURIComponent(returnUrl)}`)
-                        }}
+                        onClick={() => setShowCreateClienteModal(true)}
                         className="inline-flex items-center space-x-1.5 px-2 py-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors text-sm whitespace-nowrap"
                       >
                         <Plus size={14} />
@@ -741,6 +752,13 @@ export default function NuevaFactura() {
         isOpen={showClienteModal}
         onClose={() => setShowClienteModal(false)}
         onSelectCliente={handleSelectCliente}
+      />
+
+      {/* Modal de crear cliente */}
+      <ClienteCreateModal
+        isOpen={showCreateClienteModal}
+        onClose={() => setShowCreateClienteModal(false)}
+        onClienteCreated={handleClienteCreated}
       />
 
       {/* Modal de selección de productos */}
