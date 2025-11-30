@@ -8,21 +8,60 @@ class Serializers {
     public static function serializeFacturaLista($factura) {
         $is_array = is_array($factura);
         
-        return array(
+        $result = array(
             "id" => intval($is_array ? ($factura['id'] ?? 0) : ($factura->id ?? 0)),
             "numero_factura" => $is_array ? ($factura['numero_factura'] ?? '') : ($factura->numero_factura ?? ''),
             "fecha" => $is_array ? ($factura['fecha'] ?? '') : ($factura->fecha ?? ''),
             "total" => floatval($is_array ? ($factura['total'] ?? 0) : ($factura->total ?? 0)),
             "estado" => $is_array ? ($factura['estado'] ?? 'pendiente') : ($factura->estado ?? 'pendiente'),
-            "cliente" => array(
-                "codigo" => $is_array 
-                    ? ($factura['cliente']['codigo'] ?? $factura['cliente_codigo'] ?? '')
-                    : ($factura->cliente['codigo'] ?? ''),
-                "nombre" => $is_array 
-                    ? ($factura['cliente']['nombre'] ?? $factura['cliente_nombre'] ?? '')
-                    : ($factura->cliente['nombre'] ?? '')
-            )
         );
+        
+        if ($is_array && isset($factura['cliente_id'])) {
+            $result["cliente_id"] = intval($factura['cliente_id']);
+        } elseif (!$is_array && isset($factura->cliente_id)) {
+            $result["cliente_id"] = intval($factura->cliente_id);
+        }
+        
+        if ($is_array && isset($factura['created_at'])) {
+            $result["created_at"] = $factura['created_at'];
+        } elseif (!$is_array && isset($factura->created_at)) {
+            $result["created_at"] = $factura->created_at;
+        }
+        
+        if ($is_array && isset($factura['subtotal'])) {
+            $result["subtotal"] = floatval($factura['subtotal']);
+        } elseif (!$is_array && isset($factura->subtotal)) {
+            $result["subtotal"] = floatval($factura->subtotal);
+        }
+        
+        // Serializar cliente
+        $cliente_codigo = '';
+        $cliente_nombre = '';
+        
+        if ($is_array) {
+            if (isset($factura['cliente']) && is_array($factura['cliente'])) {
+                $cliente_codigo = $factura['cliente']['codigo'] ?? '';
+                $cliente_nombre = $factura['cliente']['nombre'] ?? '';
+            } else {
+                $cliente_codigo = $factura['cliente_codigo'] ?? '';
+                $cliente_nombre = $factura['cliente_nombre'] ?? '';
+            }
+        } else {
+            if (isset($factura->cliente) && is_array($factura->cliente)) {
+                $cliente_codigo = $factura->cliente['codigo'] ?? '';
+                $cliente_nombre = $factura->cliente['nombre'] ?? '';
+            } else {
+                $cliente_codigo = $factura->cliente_codigo ?? '';
+                $cliente_nombre = $factura->cliente_nombre ?? '';
+            }
+        }
+        
+        $result["cliente"] = array(
+            "codigo" => $cliente_codigo,
+            "nombre" => $cliente_nombre
+        );
+        
+        return $result;
     }
     
 
