@@ -112,21 +112,82 @@ class Database {
             return $this->conn;
             
         } catch(PDOException $exception) {
-            http_response_code(500);
-            echo json_encode([
-                "error" => true,
-                "message" => "Error de conexión a la base de datos: " . $exception->getMessage(),
-                "debug" => [
-                    "host" => !empty($this->host) ? $this->host : false,
-                    "port" => !empty($this->port) ? $this->port : false,
-                    "database" => !empty($this->db_name) ? $this->db_name : false,
-                    "username" => !empty($this->username) ? $this->username : false,
-                    "is_local" => $this->isLocalEnvironment(),
-                    "has_mysql_url" => !empty($_ENV['MYSQL_URL']) || !empty(getenv('MYSQL_URL')),
-                    "has_railway_env" => !empty($_ENV['RAILWAY_ENVIRONMENT']) || !empty(getenv('RAILWAY_ENVIRONMENT'))
-                ]
-            ]);
-            exit();
+            $errorCode = $exception->getCode();
+            $errorMessage = $exception->getMessage();
+            
+            $isGoneAwayError = (
+                $errorCode == 2006 || 
+                strpos($errorMessage, '2006') !== false ||
+                stripos($errorMessage, 'MySQL server has gone away') !== false ||
+                stripos($errorMessage, 'server has gone away') !== false
+            );
+            
+            $isConnectionRefusedError = (
+                $errorCode == 2002 ||
+                strpos($errorMessage, '2002') !== false ||
+                stripos($errorMessage, 'actively refused') !== false ||
+                stripos($errorMessage, 'No connection could be made') !== false ||
+                stripos($errorMessage, 'Connection refused') !== false
+            );
+            
+            if ($isGoneAwayError || $isConnectionRefusedError) {
+                $errorType = $isGoneAwayError ? 'MySQL server has gone away' : 'Connection refused';
+                error_log("⚠️ Error '{$errorType}' detectado. Intentando reconexión...");
+                
+                try {
+                    usleep(500000);
+                    
+                    $dsn = "mysql:host={$this->host};port={$this->port};dbname={$this->db_name};charset=utf8mb4";
+                    $this->conn = new PDO(
+                        $dsn,
+                        $this->username,
+                        $this->password,
+                        [
+                            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                            PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+                            PDO::ATTR_TIMEOUT => 30,
+                            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+                        ]
+                    );
+                    
+                    error_log("✅ Reconexión exitosa '{$errorType}'");
+                    return $this->conn;
+                    
+                } catch(PDOException $retryException) {
+                    error_log("❌ Reconexión fallida: " . $retryException->getMessage());
+                    $this->handleDatabaseError($retryException, true);
+                }
+            } else {
+                $this->handleDatabaseError($exception, false);
+            }
         }
+    }
+    
+    private function handleDatabaseError($exception, $isGoneAway = false) {
+        http_response_code(503);
+        
+        if ($isGoneAway) {
+            $message = "La base de datos está en reposo. Por favor, espera unos segundos e intenta nuevamente. El servicio se activará automáticamente.";
+        } else {
+            $message = "Error de conexión a la base de datos: " . $exception->getMessage();
+        }
+        
+        echo json_encode([
+            "error" => true,
+            "message" => $message,
+            "code" => $exception->getCode(),
+            "type" => $isGoneAway ? "database_sleeping" : "database_error",
+            "debug" => [
+                "host" => !empty($this->host) ? $this->host : false,
+                "port" => !empty($this->port) ? $this->port : false,
+                "database" => !empty($this->db_name) ? $this->db_name : false,
+                "username" => !empty($this->username) ? $this->username : false,
+                "is_local" => $this->isLocalEnvironment(),
+                "has_mysql_url" => !empty($_ENV['MYSQL_URL']) || !empty(getenv('MYSQL_URL')),
+                "has_railway_env" => !empty($_ENV['RAILWAY_ENVIRONMENT']) || !empty(getenv('RAILWAY_ENVIRONMENT'))
+            ]
+        ]);
+        exit();
     }
 }
