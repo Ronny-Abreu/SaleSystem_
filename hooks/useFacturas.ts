@@ -89,6 +89,11 @@ export function useFacturas(filtros?: {
         invalidateCache("facturas.php")
         invalidateCache("estadisticas")
         await fetchFacturas(true)
+        
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('factura:created', { detail: response.data }))
+        }
+        
         return response.data
       } else {
         throw new Error(response.message)
@@ -107,6 +112,10 @@ export function useFacturas(filtros?: {
         invalidateCache("facturas.php")
         invalidateCache("estadisticas")
         await fetchFacturas(true)
+        
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('factura:updated', { detail: { id, estado } }))
+        }
       } else {
         throw new Error(response.message)
       }
@@ -116,7 +125,6 @@ export function useFacturas(filtros?: {
   }
 
   useEffect(() => {
-    // Solo hacer fetch cuando la autenticación esté verificada
     if (authChecked) {
       fetchFacturas(false)
     }

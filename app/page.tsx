@@ -52,7 +52,6 @@ export default function Home() {
     return `${cambio >= 0 ? "+" : ""}${cambio.toFixed(1)}%`
   }, [ingresosHoy, ingresosAyer])
 
-  // Calcular clientes únicos que compraron hoy
   const clientesUnicosHoy = useMemo(() => {
     const clientesSet = new Set<number>()
     facturasHoy.forEach((factura) => {
@@ -63,20 +62,22 @@ export default function Home() {
     return clientesSet.size
   }, [facturasHoy])
 
-  // Obtener información de clientes recientes que compraron hoy
   const clientesRecientes = useMemo(() => {
     const clientesMap = new Map<number, { id: number; nombre: string; codigo: string; fechaUltimaCompra: Date }>()
     
     facturasHoy.forEach((factura) => {
-      if (factura.cliente_id && factura.cliente) {
+      if (factura.cliente_id) {
         const fechaCompra = new Date(factura.created_at)
         const clienteExistente = clientesMap.get(factura.cliente_id)
+        
+        const nombreCliente = factura.cliente?.nombre || "Cliente desconocido"
+        const codigoCliente = factura.cliente?.codigo || ""
         
         if (!clienteExistente || fechaCompra > clienteExistente.fechaUltimaCompra) {
           clientesMap.set(factura.cliente_id, {
             id: factura.cliente_id,
-            nombre: factura.cliente.nombre || "Cliente desconocido",
-            codigo: factura.cliente.codigo || "",
+            nombre: nombreCliente,
+            codigo: codigoCliente,
             fechaUltimaCompra: fechaCompra,
           })
         }

@@ -122,6 +122,11 @@ export function useClientes() {
       if (response.success) {
         invalidateCache("clientes.php")
         await fetchClientes(true)
+        
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('cliente:created', { detail: response.data }))
+        }
+        
         return response.data
       } else {
         throw new Error(response.message)

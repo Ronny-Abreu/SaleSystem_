@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useAuthenticatedApi } from "./useAuthenticatedApi"
 import { facturasApi, productosApi } from "@/lib/api"
 import type { Factura, Producto } from "@/lib/types"
@@ -26,7 +26,7 @@ interface CachedData {
 }
 
 const CACHE_KEY = "dashboard_data_cache"
-const CACHE_DURATION = 5 * 60 * 1000 //
+const CACHE_DURATION = 30 * 1000
 
 export function useDashboardData() {
   const [data, setData] = useState<DashboardData>({
@@ -43,6 +43,7 @@ export function useDashboardData() {
   const [quickActionsLoaded, setQuickActionsLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { authenticatedRequest, isAuthenticated, authChecked } = useAuthenticatedApi()
+  const isRefreshingRef = useRef(false)
 
   // Función para guardar en cache
   const saveToCache = useCallback((data: DashboardData, hoy: string) => {
@@ -55,6 +56,14 @@ export function useDashboardData() {
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData))
     } catch (error) {
       console.error("Error guardando en cache:", error)
+    }
+  }, [])
+
+  const invalidateCache = useCallback(() => {
+    try {
+      localStorage.removeItem(CACHE_KEY)
+    } catch (error) {
+      console.error("Error invalidando cache:", error)
     }
   }, [])
 
@@ -110,9 +119,14 @@ export function useDashboardData() {
     }
   }, [authenticatedRequest])
 
-  const loadQuickActions = useCallback(async (hoy: string, fechaAyer: string, currentStats: { estadisticasHoy: Estadisticas | null, estadisticasAyer: Estadisticas | null }) => {
+  const loadQuickActions = useCallback(async (hoy: string, fechaAyer: string, currentStats: { estadisticasHoy: Estadisticas | null, estadisticasAyer: Estadisticas | null }, skipCache = false, silent = false) => {
     try {
-      setLoadingQuickActions(true)
+      if (isRefreshingRef.current && !skipCache) return
+      isRefreshingRef.current = true
+
+      if (!silent) {
+        setLoadingQuickActions(true)
+      }
       setError(null)
 
       const [facturasHoyResponse, facturasAyerResponse, productosResponse] = await Promise.all([
@@ -173,14 +187,20 @@ export function useDashboardData() {
 
       setData(newData)
       setQuickActionsLoaded(true)
-      setLoadingQuickActions(false)
+      if (!silent) {
+        setLoadingQuickActions(false)
+      }
 
       saveToCache(newData, hoy)
+      isRefreshingRef.current = false
 
       window.dispatchEvent(new CustomEvent('dashboard:fullyLoaded'))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido")
-      setLoadingQuickActions(false)
+      if (!silent) {
+        setLoadingQuickActions(false)
+      }
+      isRefreshingRef.current = false
     }
   }, [authenticatedRequest, saveToCache])
 
@@ -226,6 +246,43 @@ export function useDashboardData() {
     loadStats(hoy, fechaAyer)
   }, [authChecked, isAuthenticated, loadStats, loadFromCache])
 
+  const refreshData = useCallback(async (force = false) => {
+    if (!isAuthenticated) return
+
+    const hoy = (() => {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
+    
+    const fechaAyer = (() => {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const year = yesterday.getFullYear()
+      const month = String(yesterday.getMonth() + 1).padStart(2, '0')
+      const day = String(yesterday.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
+
+    if (force) {
+      invalidateCache()
+    }
+
+    await loadStats(hoy, fechaAyer)
+    
+    setTimeout(() => {
+      setData((prev) => {
+        loadQuickActions(hoy, fechaAyer, {
+          estadisticasHoy: prev.estadisticasHoy,
+          estadisticasAyer: prev.estadisticasAyer,
+        }, true, false)
+        return prev
+      })
+    }, 100)
+  }, [isAuthenticated, loadStats, loadQuickActions, invalidateCache])
+
   // Cargar acciones rápidas cuando las estadísticas estén listas
   useEffect(() => {
     if (!statsLoaded || quickActionsLoaded) return
@@ -246,7 +303,6 @@ export function useDashboardData() {
       return `${year}-${month}-${day}`
     })()
 
-    // Pequeño delay para asegurar que las estadísticas se muestren primero
     const timer = setTimeout(() => {
       loadQuickActions(hoy, fechaAyer, {
         estadisticasHoy: data.estadisticasHoy,
@@ -257,6 +313,97 @@ export function useDashboardData() {
     return () => clearTimeout(timer)
   }, [statsLoaded, quickActionsLoaded, loadQuickActions, data.estadisticasHoy, data.estadisticasAyer])
 
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isAuthenticated && statsLoaded && quickActionsLoaded) {
+        refreshData(false)
+      }
+    }
+
+    const handleFocus = () => {
+      if (isAuthenticated && statsLoaded && quickActionsLoaded) {
+        refreshData(false)
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [isAuthenticated, statsLoaded, quickActionsLoaded, refreshData])
+
+  const refreshDataInBackground = useCallback(async () => {
+    if (!isAuthenticated) return
+
+    const hoy = (() => {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
+    
+    const fechaAyer = (() => {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const year = yesterday.getFullYear()
+      const month = String(yesterday.getMonth() + 1).padStart(2, '0')
+      const day = String(yesterday.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })()
+
+    invalidateCache()
+
+    try {
+      const [estadisticasHoyResponse, estadisticasAyerResponse] = await Promise.all([
+        authenticatedRequest(() => facturasApi.getEstadisticas(hoy)),
+        authenticatedRequest(() => facturasApi.getEstadisticas(fechaAyer)),
+      ])
+
+      const estadisticasHoy = estadisticasHoyResponse.success ? estadisticasHoyResponse.data : null
+      const estadisticasAyer = estadisticasAyerResponse.success ? estadisticasAyerResponse.data : null
+
+      setData((prev) => ({
+        ...prev,
+        estadisticasHoy,
+        estadisticasAyer,
+      }))
+
+      setStatsLoaded(true)
+
+      await loadQuickActions(hoy, fechaAyer, {
+        estadisticasHoy,
+        estadisticasAyer,
+      }, true, true)
+    } catch (err) {
+      console.error("Error actualizando datos en segundo plano:", err)
+    }
+  }, [isAuthenticated, authenticatedRequest, invalidateCache, loadQuickActions])
+
+  useEffect(() => {
+    const handleFacturaCreated = () => {
+      refreshDataInBackground()
+    }
+
+    window.addEventListener('factura:created', handleFacturaCreated)
+    window.addEventListener('factura:updated', handleFacturaCreated)
+    window.addEventListener('producto:created', handleFacturaCreated)
+    window.addEventListener('producto:updated', handleFacturaCreated)
+    window.addEventListener('cliente:created', handleFacturaCreated)
+
+    return () => {
+      window.removeEventListener('factura:created', handleFacturaCreated)
+      window.removeEventListener('factura:updated', handleFacturaCreated)
+      window.removeEventListener('producto:created', handleFacturaCreated)
+      window.removeEventListener('producto:updated', handleFacturaCreated)
+      window.removeEventListener('cliente:created', handleFacturaCreated)
+    }
+  }, [refreshDataInBackground])
+
   return {
     ...data,
     loading: loadingStats || loadingQuickActions,
@@ -265,5 +412,6 @@ export function useDashboardData() {
     statsLoaded,
     quickActionsLoaded,
     error,
+    refreshData,
   }
 }

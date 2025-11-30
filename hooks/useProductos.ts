@@ -17,7 +17,6 @@ export function useProductos(soloActivos?: boolean) {
       setLoading(true)
       setError(null)
 
-      // Solo hacer fetch si está autenticado
       if (!isAuthenticated) {
         setLoading(false)
         return
@@ -133,6 +132,11 @@ export function useProductos(soloActivos?: boolean) {
       if (response.success) {
         invalidateCache("productos.php")
         await fetchProductos(true)
+        
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('producto:created', { detail: response.data }))
+        }
+        
         return response.data
       } else {
         throw new Error(response.message)
@@ -150,6 +154,11 @@ export function useProductos(soloActivos?: boolean) {
       if (response.success) {
         invalidateCache("productos.php")
         await fetchProductos(true)
+        
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('producto:updated', { detail: response.data }))
+        }
+        
         return response.data
       } else {
         throw new Error(response.message)
@@ -177,7 +186,6 @@ export function useProductos(soloActivos?: boolean) {
   const initializedRef = useRef(false)
 
   useEffect(() => {
-    // Solo hacer fetch cuando la autenticación esté verificada
     if (!authChecked || !isAuthenticated) {
       setLoading(false)
       return
